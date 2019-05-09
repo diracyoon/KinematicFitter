@@ -1,3 +1,0 @@
-# sample flavor       number_iter          rootfile                         histname 
-DYJets    muon    	20             ZPtWeight.root		muon2016_iter
-DYJets    electron     20             ZPtWeight.root	 	electron2016_iter

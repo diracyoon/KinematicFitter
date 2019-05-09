@@ -1,2 +1,0 @@
-### taken from https://twiki.cern.ch/twiki/bin/viewauth/CMS/BtagRecommendation102X on Feb 6 2019
-2016 DeepCSV All 272007 284044 DeepCSV_2016LegacySF_V1.csv

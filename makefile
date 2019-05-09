@@ -1,44 +1,11 @@
-all: CommonTools DataFormats  AnalyzerTools KinematicFitter Analyzers
-#all: CommonTools DataFormats  AnalyzerTools KinematicFitter Analyzers Archive
+LIBRARY = KinematicFitter
+OBJDIR = obj
+DEPDIR = $(OBJDIR)/dep
+SRCDIR = src
+INCDIR = include
 
-CommonTools::
-	(cd CommonTools; make)
-	(mvexist.sh CommonTools/src/CommonTools_Dict_rdict.pcm lib/)
+include $(SKFlat_WD)/makefile.common
 
-DataFormats::
-	(cd DataFormats; make)
-	(mvexist.sh DataFormats/src/DataFormats_Dict_rdict.pcm lib/)
-
-KinematicFitter::
-	(cd AnalyzerTools/KinematicFitter; make)
-	(mvexist.sh AnalyzerTools/KinematicFitter/src/KinematicFitter_Dict_rdict.pcm lib/)
-
-AnalyzerTools::
-	(cd AnalyzerTools; make)
-	(mvexist.sh AnalyzerTools/src/AnalyzerTools_Dict_rdict.pcm lib/)
-
-Analyzers::
-	(cd Analyzers; make)
-	(mvexist.sh Analyzers/src/Analyzers_Dict_rdict.pcm lib/)
-
-Archive::
-	(tar -zcf lib/CommonPyTools.tar.gz CommonPyTools)
-	(tar -zcf lib/CommonTools.tar.gz CommonTools)
-	(tar -zcf lib/DataFormats.tar.gz DataFormats)
-	(tar -zcf lib/KinematicFitter.tar.gz AnalyzerTools/KinematicFitter)
-	(tar -zcf lib/AnalyzerTools.tar.gz AnalyzerTools)
-	(tar -zcf lib/Analyzers.tar.gz Analyzers)
-
-clean::
-	(cd CommonTools; make clean)
-	(cd DataFormats; make clean)
-	(cd AnalyzerTools/KinematicFitter; make clean)
-	(cd AnalyzerTools; make clean)
-	(cd Analyzers; make clean)
-
-distclean::
-	(cd CommonTools; make distclean)
-	(cd DataFormats; make distclean)
-	(cd AnalyzerTools/KinematicFitter; make distclean)
-	(cd AnalyzerTools; make distclean)
-	(cd Analyzers; make distclean)
+INCLUDES += -I$(SKFlat_WD)/DataFormats/include/
+INCLUDES += -I$(SKFlat_WD)/CommonTools/include/
+#INCLUDES += -I/cvmfs/cms.cern.ch/slc6_amd64_gcc630/external/lhapdf/6.2.1-fmblme/include/

@@ -1,9 +1,0 @@
-passVetoID
-passLooseID
-passMediumID
-passTightID
-passMVAID_noIso_WP80
-passMVAID_noIso_WP90
-passMVAID_iso_WP80
-passMVAID_iso_WP90
-passHEEPID
