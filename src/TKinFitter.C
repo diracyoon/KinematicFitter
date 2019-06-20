@@ -394,10 +394,32 @@ Int_t TKinFitter::fit() {
 
     if( TMath::IsNaN(currF) ) {
       //edm::LogInfo ("KinFitter") << "The current value of F is NaN. Fit will be aborted.";
+      /*
+      printMatrix( _A      , "A"      );
+      printMatrix( _B      , "B"      );
+      printMatrix( _VBinv  , "VBinv"  );
+      printMatrix( _VB     , "VB"     );
+      printMatrix( _V      , "V"      );
+      printMatrix( _deltaY , "deltaY" );
+      printMatrix( _deltaA , "deltaA" );
+      printMatrix( _C32T   , "C32T"   );
+      printMatrix( _c      , "C"      );
+      */
       _status = -10;
     }
     if( TMath::IsNaN(currS) ) {
       //edm::LogInfo ("KinFitter") << "The current value of S is NaN. Fit will be aborted.";
+      /*
+      printMatrix( _A      , "A"      );
+      printMatrix( _B      , "B"      );
+      printMatrix( _VBinv  , "VBinv"  );
+      printMatrix( _VB     , "VB"     );
+      printMatrix( _V      , "V"      );
+      printMatrix( _deltaY , "deltaY" );
+      printMatrix( _deltaA , "deltaA" );
+      printMatrix( _C32T   , "C32T"   );
+      printMatrix( _c      , "C"      );
+      */
       _status = -10;
     }
 
@@ -1280,25 +1302,23 @@ void TKinFitter::printMatrix(const TMatrixD &matrix, const TString& name) {
   topbar[nk] = 0;
 
   Int_t sw = (70-name.Length())/2;
-  /*
-  log << std::setfill('=') << std::setw(sw) << "=  " << name << std::setw(sw) << std::left << "  ="  << "\n"
+  std::cout << std::setfill('=') << std::setw(sw) << "=  " << name << std::setw(sw) << std::left << "  ="  << "\n"
       << std::setfill(' ') << std::right << "\n";
 
-  log << nRows << "x" << nCols << " matrix is as follows \n";
+      std::cout << nRows << "x" << nCols << " matrix is as follows \n";
 
   for (Int_t iSheet = 0; iSheet < nCols; iSheet += colsPerSheet) {
-    log << "\n"
+  std::cout << "\n"
 	<< "     |";
     for (Int_t iCol = iSheet; iCol < iSheet+colsPerSheet && iCol < nCols; iCol++)
-      log << std::setw(8) << iCol << "    |";
-    log << "\n"
+    std::cout << std::setw(8) << iCol << "    |";
+    std::cout << "\n"
 	<< topbar << " \n";
     for(Int_t iRow = 0; iRow < nRows; iRow++) {
-      log << std::setw(4) << iRow << " |";
+    std::cout << std::setw(4) << iRow << " |";
       for (Int_t iCol = iSheet; iCol < iSheet+colsPerSheet && iCol < nCols; iCol++)
-	log << std::setw(12) << matrix(iRow, iCol) << " ";
-      log << "\n";
+      std::cout << std::setw(12) << matrix(iRow, iCol) << " ";
+      std::cout << "\n";
     }
   }
-  */
 }

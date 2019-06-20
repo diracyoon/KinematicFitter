@@ -44,6 +44,9 @@ public :
   virtual TString getInfoString();
   virtual void print(); 
 
+  //BHO
+  void Clear(){ _ParList1.clear(); _ParList2.clear(); }
+
 protected :
   
   std::vector<TAbsFitParticle*> _ParList1;   // Vector containing first list of constrained particles ( sum[ m_i ] - sum[ m_j ] == 0 )
