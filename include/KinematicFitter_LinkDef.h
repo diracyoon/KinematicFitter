@@ -26,5 +26,11 @@
 #pragma link C++ class TKinFitter+;
 #pragma link C++ class TSLToyGen+;
 
+#pragma link C++ class TFitParticleEt+;
+#pragma link C++ class TFitParticlePt+;
+#pragma link C++ class TFitParticlePz+;
+#pragma link C++ class TFitParticlePxPy+;
+#pragma link C++ class TFitConstraintM2Gaus+;
+
 #endif
 

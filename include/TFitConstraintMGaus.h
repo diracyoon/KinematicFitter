@@ -24,6 +24,7 @@ public :
 
   virtual Double_t getInitValue();
   virtual Double_t getCurrentValue();
+  virtual Double_t getChi2(); //BHO
   virtual TMatrixD* getDerivativeAlpha();
 
   void setMassConstraint(Double_t Mass, Double_t Width);
@@ -31,12 +32,15 @@ public :
   virtual TString getInfoString();
   virtual void print(); 
 
+  //BHO
+  void Clear(){ _ParList1.clear(); _ParList2.clear(); }
+  double getWidth(){ return _width; }
+
 protected :
   
   Double_t _width;
 
   void init();
-
 
   ClassDef(TFitConstraintMGaus,1)
 

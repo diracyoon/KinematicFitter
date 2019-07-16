@@ -320,10 +320,13 @@ Int_t TKinFitter::fit() {
 
   _nbIter = 0;
   Bool_t isConverged = false;
+  Bool_t isConverged_F = false; //BHO
+  Bool_t isConverged_S = false; //BHO
   Double_t prevF;
   Double_t currF = getF();
   Double_t prevS;
   Double_t currS = 0.;
+  _deltaS = 0.; //BHO
 
   // Calculate covariance matrix V
   calcV();
@@ -440,10 +443,13 @@ Int_t TKinFitter::fit() {
     
     //std::cout << "reduce step" << std::endl;
     // Test convergence
-    isConverged = converged(currF, prevS, currS);
-
+    //isConverged = converged(currF, prevS, currS);
+    //BHO
+    isConverged_F = converged_F(currF);
+    isConverged_S = converged_S(prevS, currS);
+    isConverged = (isConverged_F && isConverged_S);
  
-  } while ( (! isConverged) && (_nbIter < _maxNbIter) && (_status != -10) );
+  } while ( (!isConverged) && (_nbIter < _maxNbIter) && (_status != -10) );
 
   // Calculate covariance matrices
   calcB();
@@ -465,6 +471,12 @@ Int_t TKinFitter::fit() {
   // Set status information
   if (isConverged) {
     _status = 0;
+  }
+  else if (isConverged_F && !isConverged_S){ //BHO
+    _status = 2;
+  }
+  else if (!isConverged_F && isConverged_S){ //BHO
+    _status = 3;
   }
   else if (_status != -10) {
     _status = 1;
@@ -1162,6 +1174,30 @@ Bool_t TKinFitter::converged( Double_t F, Double_t prevS, Double_t currS ) {
   // Calculate current Chi^2 and delta(S)
   Double_t deltaS = currS - prevS;
   isConverged = isConverged && (TMath::Abs(deltaS) < _maxDeltaS);
+
+  return isConverged;
+
+}
+
+Bool_t TKinFitter::converged_F( Double_t F) {
+  // check whether convergence criteria are fulfilled
+  Bool_t isConverged = false;
+  
+  // calculate F, delta(a) and delta(y) already applied
+  isConverged = (F < _maxF);
+
+  return isConverged;
+
+}
+
+Bool_t TKinFitter::converged_S( Double_t prevS, Double_t currS ) {
+  // check whether convergence criteria are fulfilled
+  Bool_t isConverged = false;
+  
+  // Calculate current Chi^2 and delta(S)
+  Double_t deltaS = currS - prevS;
+  _deltaS = deltaS;
+  isConverged = (TMath::Abs(deltaS) < _maxDeltaS);
 
   return isConverged;
 

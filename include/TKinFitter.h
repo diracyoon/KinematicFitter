@@ -47,6 +47,7 @@ public :
   const TMatrixD* getCovMatrixFit() { return &_yaVFit; }
   Double_t getS();
   Double_t getF();
+  Double_t getDeltaS(){ return _deltaS; } //BHO
   void setVerbosity( Int_t verbosity = 1 );
   Int_t getVerbosity( ) { return _verbosity; }
 
@@ -87,6 +88,9 @@ protected:
   void applyVFit();
 
   Bool_t converged(Double_t F, Double_t prevS, Double_t currS);
+  //BHO
+  Bool_t converged_F(Double_t F);
+  Bool_t converged_S(Double_t prevS, Double_t currS);
 
   TString getStatusString();
   void countMeasParams();
@@ -146,7 +150,9 @@ private :
 
   Int_t _status;        // Status of the last fit;_
   Int_t _nbIter;        // number of iteration performed in the fit
-
+ 
+  //BHO
+  Double_t _deltaS; 
   ClassDef(TKinFitter,1)
 
 };

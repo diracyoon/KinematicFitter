@@ -117,6 +117,20 @@ Double_t TFitConstraintMGaus::getCurrentValue() {
 
 }
 
+//BHO
+Double_t TFitConstraintMGaus::getChi2() {
+
+  Double_t diff =
+    CalcMass(&_ParList1,false) - 
+    CalcMass(&_ParList2,false) - 
+    _TheMassConstraint;
+  Double_t chi2 = (diff*diff)/(_width*_width);
+
+  return chi2;
+
+}
+
+
 TMatrixD* TFitConstraintMGaus::getDerivativeAlpha() { 
   // Calculate dF/dAlpha = -1 * M
 
