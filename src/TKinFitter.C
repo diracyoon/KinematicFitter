@@ -344,6 +344,9 @@ Int_t TKinFitter::fit() {
       _status = 10;
     }
 
+    fitNeuPzOnly(); //BHO
+    fitMeasuredOnly(); //BHO
+
     // Calculate matrices
     calcB();
     calcVB();
@@ -489,6 +492,120 @@ Int_t TKinFitter::fit() {
 
   return _status;
 
+}
+
+void TKinFitter::fitMeasuredOnly() {
+  Double_t prevF;
+  Double_t currF = getF();
+  Double_t prevS;
+  Double_t currS = 0.;
+  Bool_t isConverged = false; //BHO
+  Bool_t isConverged_F = false; //BHO
+  Bool_t isConverged_S = false; //BHO
+  Int_t n_iter = 1, i_iter=0;
+  do {
+
+    // Calculate matrices
+    calcB();
+    calcVB();
+    //
+    calcC31(false);
+    calcC33(false);
+    calcC(false);
+    //
+    calcDeltaY();
+    calcLambda();
+
+    applyDeltaY();
+
+    
+    //calculate F and S
+    prevF = currF;
+    currF = getF();
+    prevS = currS;
+    currS = getS();
+
+    //std::cout << "calculate F ans S" << std::endl;
+
+    if( TMath::IsNaN(currF) ) {
+      _status = -10;
+      break;
+    }
+    if( TMath::IsNaN(currS) ) {
+      _status = -10;
+      break;
+    }
+
+    // Reduce step width if F is not getting smaller
+    Int_t nstep = 0;
+    while (currF >= prevF) {
+      nstep++;
+      if (nstep == 10) break;
+      _deltaY -= (0.5) * (_deltaY - _deltaYstar);
+      _lambda *= 0.5;
+      _lambdaT *= 0.5;
+      applyDeltaY();
+      currF = getF();
+      currS = getS();
+    }
+    
+    //std::cout << "reduce step" << std::endl;
+    // Test convergence
+    //isConverged = converged(currF, prevS, currS);
+    //BHO
+    isConverged_F = converged_F(currF);
+    isConverged_S = converged_S(prevS, currS);
+    isConverged = (isConverged_F && isConverged_S);
+    i_iter++;
+  } while ( (!isConverged) && (i_iter < n_iter) && (_status != -10) );
+
+   return;
+}
+
+void TKinFitter::fitNeuPzOnly() {
+
+  if(_nbIter==0){
+    return;
+  }
+
+  Double_t prevF;
+  Double_t currF = getF();
+  Int_t i_w_mass_constraint = 2;
+  Int_t i_a = 0;
+  bool IsConverge = false;
+  if( _nParA > 0 ){ 
+    Int_t n_fit_neupz=1, i_fit_neupz=0;
+    do{
+      calcA();
+      Double_t A = _A(i_w_mass_constraint,0);
+      // set _deltaAstar
+      _deltaAstar = _deltaA;
+      Double_t deltaNeuPzstar = _deltaAstar(i_a,0);
+      Double_t fwmassstar = _constraints[i_w_mass_constraint]->getCurrentValue();
+      if(A == 0.){ 
+        break;
+      }    
+      _deltaA(i_a,0) = deltaNeuPzstar - (1/A)*fwmassstar;
+      applyDeltaA();
+      prevF = currF;
+      currF = getF();
+      if( TMath::IsNaN(currF) ) {
+        _status = -10; 
+        break;
+      }    
+      Int_t nstep = 0; 
+      while (currF >= prevF) {
+        nstep++;
+        if (nstep == 10) break;
+        _deltaA -= (0.5) * (_deltaA - _deltaAstar);
+        applyDeltaA();
+        currF = getF();
+      }    
+      i_fit_neupz++;
+      IsConverge = fabs(_constraints[i_w_mass_constraint]->getCurrentValue()) < _maxF;
+    }while(i_fit_neupz<n_fit_neupz && !IsConverge ) ;
+  }
+  return;
 }
 
 void TKinFitter::setCovMatrix( TMatrixD &V ) {
@@ -768,7 +885,7 @@ Bool_t TKinFitter::calcC22() {
 
 }
 
-Bool_t TKinFitter::calcC31() {
+Bool_t TKinFitter::calcC31(bool calcA) {
   // Calculate the matrix  C31 = VB*B*V^(-1) - VB*A*VA^(-1)*AT*VB*B*V^(-1)
 
   TMatrixD VbB(_VB, TMatrixD::kMult, _B);
@@ -777,7 +894,7 @@ Bool_t TKinFitter::calcC31() {
   _C31.ResizeTo( m1 );
   _C31 = m1;
 
-  if ( _nParA > 0 ) {
+  if ( _nParA > 0 && calcA ) {
     TMatrixD VbA(_VB, TMatrixD::kMult, _A);
     TMatrixD VAinvAT( _VAinv, TMatrixD::kMult, _AT );
     TMatrixD VbBV( VbB,  TMatrixD::kMult, _V );
@@ -811,14 +928,14 @@ Bool_t TKinFitter::calcC32() {
 
 }
 
-Bool_t TKinFitter::calcC33() {
+Bool_t TKinFitter::calcC33(bool calcA) {
   // Calculate the matrix C33 = -VB + VB*A*VA^(-1)*AT*VB
 
   _C33.ResizeTo( _VB );
   _C33 = _VB;
   _C33 *= -1.;
 
-  if ( _nParA > 0 ) {
+  if ( _nParA > 0 && calcA ) {
     TMatrixD VbA(_VB, TMatrixD::kMult, _A );
     TMatrixD VAinvAT( _VAinv, TMatrixD::kMult, _AT );
     TMatrixD VbAVAinvAT( VbA, TMatrixD::kMult, VAinvAT );
@@ -833,14 +950,14 @@ Bool_t TKinFitter::calcC33() {
   return true;
 }
 
-Bool_t TKinFitter::calcC() {
+Bool_t TKinFitter::calcC(bool calcA) {
   // Calculate the matrix c = A*deltaAStar + B*deltaYStar - fStar
 
   int offsetParam = 0;
 
   // calculate delta(a*), = 0 in the first iteration
   TMatrixD deltaastar( 1, 1 );
-  if ( _nParA > 0 ) {
+  if ( _nParA > 0 && calcA) {
 
     deltaastar.ResizeTo( _nParA, 1 );
     for (unsigned int indexParticle = 0; indexParticle < _unmeasParticles.size(); indexParticle++) {
@@ -918,7 +1035,7 @@ Bool_t TKinFitter::calcC() {
   _c *= (-1.);
   TMatrixD Bdeltaystar( _B, TMatrixD::kMult, deltaystar );
   _c += Bdeltaystar;
-  if ( _nParA ) {
+  if ( _nParA && calcA) {
     TMatrixD Adeltaastar( _A, TMatrixD::kMult, deltaastar );
     _c += Adeltaastar;
   }

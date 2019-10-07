@@ -20,6 +20,8 @@ public :
   void resetStatus();   
 
   Int_t fit();
+  void fitNeuPzOnly(); //BHO
+  void fitMeasuredOnly(); //BHO
 
   void addMeasParticle( TAbsFitParticle* particle );
   void addMeasParticles( TAbsFitParticle* p1, TAbsFitParticle* p2 = 0, TAbsFitParticle* p3 = 0, 
@@ -67,14 +69,14 @@ protected:
   Bool_t calcB();
   Bool_t calcVA();
   Bool_t calcVB();
-  Bool_t calcC();
+  Bool_t calcC(bool calcA=true);
 
   Bool_t calcC11();
   Bool_t calcC21();
   Bool_t calcC22();
-  Bool_t calcC31();
+  Bool_t calcC31(bool calcA=true);
   Bool_t calcC32();
-  Bool_t calcC33();
+  Bool_t calcC33(bool calcA=true);
 
   Bool_t calcDeltaA();
   Bool_t calcDeltaY();
