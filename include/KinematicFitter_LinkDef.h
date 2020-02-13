@@ -30,6 +30,7 @@
 #pragma link C++ class TFitParticlePt+;
 #pragma link C++ class TFitParticlePz+;
 #pragma link C++ class TFitParticlePxPy+;
+#pragma link C++ class TFitParticleEtPhi+;
 #pragma link C++ class TFitConstraintM2Gaus+;
 
 #endif

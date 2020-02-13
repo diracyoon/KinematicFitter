@@ -344,8 +344,8 @@ Int_t TKinFitter::fit() {
       _status = 10;
     }
 
-    fitNeuPzOnly(); //BHO
-    fitMeasuredOnly(); //BHO
+    //fitNeuPzOnly(); //BHO
+    //fitMeasuredOnly(); //BHO
 
     // Calculate matrices
     calcB();
