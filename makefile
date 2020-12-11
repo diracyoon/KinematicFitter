@@ -3,6 +3,7 @@ OBJDIR = obj
 DEPDIR = $(OBJDIR)/dep
 SRCDIR = src
 INCDIR = include
+ADDITIONAL_ROOTMAPLIBRARY= -rml libMatrix.so -rml libPhysics.so -rml libPhysicsToolsKinFitter.so
 
 include $(SKFlat_WD)/makefile.common
 
