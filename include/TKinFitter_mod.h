@@ -1,21 +1,21 @@
-#ifndef TKinFitter_h
-#define TKinFitter_h
+#ifndef TKinFitter_mod_h
+#define TKinFitter_mod_h
 
 #include <vector>
 #include "TMatrixD.h"
 #include "TNamed.h"
-#include "TAbsFitParticle.h"
+#include "PhysicsTools/KinFitter/interface/TAbsFitParticle.h"
 
 class TAbsFitConstraint;
 class TH1D;
 class TLorentzVector;
 
-class TKinFitter : public TNamed {
+class TKinFitter_mod : public TNamed {
 
 public :
-  TKinFitter();
-  TKinFitter(const TString &name, const TString &title);  
-  ~TKinFitter();
+  TKinFitter_mod();
+  TKinFitter_mod(const TString &name, const TString &title);  
+  ~TKinFitter_mod();
   void reset();         
   void resetStatus();   
 
@@ -155,7 +155,7 @@ private :
  
   //BHO
   Double_t _deltaS; 
-  ClassDef(TKinFitter,1)
+  ClassDef(TKinFitter_mod,1)
 
 };
 

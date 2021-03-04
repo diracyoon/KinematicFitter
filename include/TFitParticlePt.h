@@ -2,7 +2,7 @@
 #define TFitParticlePt_hh
 
 
-#include "TAbsFitParticle.h"
+#include "PhysicsTools/KinFitter/interface/TAbsFitParticle.h"
 #include "TLorentzVector.h"
 #include "TMatrixD.h"
 

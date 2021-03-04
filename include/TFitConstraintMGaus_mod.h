@@ -1,26 +1,26 @@
-#ifndef TFitConstraintMGaus_hh
-#define TFitConstraintMGaus_hh
+#ifndef TFitConstraintMGaus_mod_hh
+#define TFitConstraintMGaus_mod_hh
 
-#include "TFitConstraintM.h"
+#include "PhysicsTools/KinFitter/interface/TFitConstraintM.h"
 
 #include <vector>
 
 class TAbsFitParticle;
 
-class TFitConstraintMGaus: public TFitConstraintM {
+class TFitConstraintMGaus_mod: public TFitConstraintM {
 
 public :
 
-  TFitConstraintMGaus();
-  TFitConstraintMGaus(std::vector<TAbsFitParticle*>* ParList1,
+  TFitConstraintMGaus_mod();
+  TFitConstraintMGaus_mod(std::vector<TAbsFitParticle*>* ParList1,
 		      std::vector<TAbsFitParticle*>* ParList2,
 		      Double_t Mass = 0, Double_t Width = 0);
-  TFitConstraintMGaus(const TString &name, const TString &title,
+  TFitConstraintMGaus_mod(const TString &name, const TString &title,
 		      std::vector<TAbsFitParticle*>* ParList1,
 		      std::vector<TAbsFitParticle*>* ParList2,
 		      Double_t Mass = 0, Double_t Width = 0);
 
-  virtual ~TFitConstraintMGaus();
+  virtual ~TFitConstraintMGaus_mod();
 
   virtual Double_t getInitValue();
   virtual Double_t getCurrentValue();
@@ -42,7 +42,7 @@ protected :
 
   void init();
 
-  ClassDef(TFitConstraintMGaus,1)
+  ClassDef(TFitConstraintMGaus_mod,1)
 
 };
 
