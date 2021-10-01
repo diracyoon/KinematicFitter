@@ -43,12 +43,28 @@ class TKinFitterDriver : public TObject
   float neutrino_pz_sol[2];
   bool chk_real_neu_pz;
 
+  //for easy permutation handling
   TLorentzVector jet_had_t_b, jet_w_u, jet_w_d, jet_lep_t_b, neutrino;
 
+  //fitting objects and handlers
   TFitParticlePt* fit_lepton;
   unique_ptr<TFitParticlePt> u_fit_lepton;
 
   TMatrixD error_lepton;
+
+  TVector3 neutrino_vec3;
+  TFitParticleMCCart* fit_neutrino;
+  unique_ptr<TFitParticleMCCart> u_fit_neutrino;
+
+  TFitParticlePt* fit_jet_had_t_b;
+  TFitParticlePt* fit_jet_w_u;
+  TFitParticlePt* fit_jet_w_d;
+  TFitParticlePt* fit_jet_lep_t_b;
+  
+  unique_ptr<TFitParticlePt> u_fit_jet_had_t_b;
+  unique_ptr<TFitParticlePt> u_fit_jet_w_u;
+  unique_ptr<TFitParticlePt> u_fit_jet_w_d;
+  unique_ptr<TFitParticlePt> u_fit_jet_lep_t_b;
 
   //vector<TAbsFitParticle*> 
 
@@ -65,7 +81,7 @@ class TKinFitterDriver : public TObject
   bool Pre_Kinematic_Cut();
   void Resol_Neutrino_Pz();//not used currently
   void Set_Constraints();
-  void Set_Current_Permutation();
+  void Set_Jets();
   void Set_Lepton();
   void Set_Neutrino(const int& index);
   void Sol_Neutrino_Pz();

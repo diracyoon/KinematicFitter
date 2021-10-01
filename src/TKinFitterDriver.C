@@ -34,7 +34,7 @@ void TKinFitterDriver::Scan()
       //loop over jet permutation
       do
 	{
-	  Set_Current_Permutation();
+	  Set_Jets();
 	  
 	  if(!BJet_Assignment_Cut()) continue;
 	  if(!Pre_Kinematic_Cut()) continue;
@@ -116,16 +116,6 @@ void TKinFitterDriver::Resol_Neutrino_Pz()
 
 //////////
 
-void TKinFitterDriver::Set_Constraints()
-{
-  //constrain_had_t_mgaus = new TFitConstraintMGaus("Hadronic_Top_Mass", "Hadronic_Top_Mass");
-
- 
-  return;
-}//void TKinFitterDriver::Set_Constraints()
-
-//////////
-
 bool TKinFitterDriver::Pre_Kinematic_Cut()
 {
   bool jet_pt_cut = false;
@@ -156,7 +146,17 @@ bool TKinFitterDriver::Pre_Kinematic_Cut()
 
 //////////
 
-void TKinFitterDriver::Set_Current_Permutation()
+void TKinFitterDriver::Set_Constraints()
+{
+  //constrain_had_t_mgaus = new TFitConstraintMGaus("Hadronic_Top_Mass", "Hadronic_Top_Mass");
+
+
+  return;
+}//void TKinFitterDriver::Set_Constraints()
+
+//////////
+
+void TKinFitterDriver::Set_Jets()
 {
   for(unsigned int i=0; i<vec_permutation.size(); i++)
     {
@@ -170,14 +170,17 @@ void TKinFitterDriver::Set_Current_Permutation()
       else if(jet_assignment==LEP_T_B) jet_lep_t_b = vec_jet.at(jet_assignment);
     }
 
+  //construct fitting objects
+
+
   return;
-}//void TKinFitterDriver::Set_Current_Permutation()
+}//void TKinFitterDriver::Set_Jets()
 
 //////////
 
 void TKinFitterDriver::Set_Lepton()
 {
-  //construct fitted object
+  //construct fitting object
   float pt = lepton.Pt();
   error_lepton(0, 0) = TMath::Power(0.0000001*pt, 2);
   
@@ -199,6 +202,13 @@ void TKinFitterDriver::Set_Neutrino(const int& index)
   float pz = neutrino_pz_sol[index];
   
   neutrino.SetPxPyPzE(px, py, pz, TMath::Sqrt(px*px+py*py+pz*pz));
+
+  //construct fitting object
+  neutrino_vec3 = neutrino.Vect();
+  
+  fit_neutrino = new TFitParticleMCCart("Fit_Neutrino", "Fit_Neutrino", &neutrino_vec3, 0., NULL);
+ 
+  u_fit_neutrino.reset(fit_neutrino);
 
   return;
 }//void TKinFitterDriver::Set_Neurino(const int& index)
