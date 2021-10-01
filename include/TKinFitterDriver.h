@@ -7,7 +7,10 @@
 #include <Lepton.h>
 #include <Particle.h>
 
-//#include <TFitParticlePt.h>
+#include <PhysicsTools/KinFitter/interface/TFitConstraintMGaus.h>
+#include <PhysicsTools/KinFitter/interface/TAbsFitParticle.h>
+#include <TFitParticlePt.h>
+#include <PhysicsTools/KinFitter/interface/TFitParticleMCCart.h>
 
 #define W_MASS 80.379
 
@@ -42,13 +45,26 @@ class TKinFitterDriver : public TObject
 
   TLorentzVector jet_had_t_b, jet_w_u, jet_w_d, jet_lep_t_b, neutrino;
 
-  //TFitParticlePt* fit_lepton;
+  TFitParticlePt* fit_lepton;
+  unique_ptr<TFitParticlePt> u_fit_lepton;
+
+  TMatrixD error_lepton;
+
+  //vector<TAbsFitParticle*> 
+
+  TFitConstraintMGaus* constrain_had_t_mgaus;
+  TFitConstraintMGaus* constrain_lep_t_mgaus;
+  TFitConstraintMGaus* constrain_had_w_mgaus;
+  TFitConstraintMGaus* constrain_lep_w_mgaus;
+
+  unique_ptr<TFitConstraintMGaus> u_ptr_constrain_had_t_mgaus;
 
   bool BJet_Assignment_Cut();
   void Clear();
   void Fit();
   bool Pre_Kinematic_Cut();
   void Resol_Neutrino_Pz();//not used currently
+  void Set_Constraints();
   void Set_Current_Permutation();
   void Set_Lepton();
   void Set_Neutrino(const int& index);

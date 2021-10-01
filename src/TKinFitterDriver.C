@@ -39,6 +39,8 @@ void TKinFitterDriver::Scan()
 	  if(!BJet_Assignment_Cut()) continue;
 	  if(!Pre_Kinematic_Cut()) continue;
 	  
+	  
+	  Set_Constraints();
 	  Fit();
 	}while(End_Permutation());//loop over neutrino pz solution
     }//loop over neutrino pz solution
@@ -114,6 +116,16 @@ void TKinFitterDriver::Resol_Neutrino_Pz()
 
 //////////
 
+void TKinFitterDriver::Set_Constraints()
+{
+  //constrain_had_t_mgaus = new TFitConstraintMGaus("Hadronic_Top_Mass", "Hadronic_Top_Mass");
+
+ 
+  return;
+}//void TKinFitterDriver::Set_Constraints()
+
+//////////
+
 bool TKinFitterDriver::Pre_Kinematic_Cut()
 {
   bool jet_pt_cut = false;
@@ -123,7 +135,7 @@ bool TKinFitterDriver::Pre_Kinematic_Cut()
   TLorentzVector had_t = jet_had_t_b + jet_w_u + jet_w_d;
   TLorentzVector lep_t = jet_lep_t_b + lepton + neutrino; 
 
-  bool tt_angular_cut = (had_t.DeltaPhi(lep_t) > 1.5) ? true : false;
+  bool tt_angular_cut = (TMath::Abs(had_t.DeltaPhi(lep_t) > 1.5)) ? true : false;
   if(!tt_angular_cut) return false;
   
   bool had_t_mass_cut = false;
@@ -165,6 +177,14 @@ void TKinFitterDriver::Set_Current_Permutation()
 
 void TKinFitterDriver::Set_Lepton()
 {
+  //construct fitted object
+  float pt = lepton.Pt();
+  error_lepton(0, 0) = TMath::Power(0.0000001*pt, 2);
+  
+  fit_lepton = new TFitParticlePt("Fit_Lepton", "Fit_Lepton", &lepton, &error_lepton);
+
+  u_fit_lepton.reset(fit_lepton);
+  
   //fit_lepton = new TFitParticlePt("Lepton", "Lepton", );
 
   return;
