@@ -1,11 +1,9 @@
 #ifndef TFitParticlePt_hh
 #define TFitParticlePt_hh
 
-
 #include "PhysicsTools/KinFitter/interface/TAbsFitParticle.h"
 #include "TLorentzVector.h"
 #include "TMatrixD.h"
-
 
 class TFitParticlePt: public TAbsFitParticle {
 
@@ -39,8 +37,8 @@ private:
   Double_t _iniEta;
   Double_t _iniPhi;
   Double_t _iniM;
-  ClassDef(TFitParticlePt,1)
 
+  ClassDef(TFitParticlePt,1)
 };
 
 
