@@ -3,25 +3,29 @@
 
 #include <TObject.h>
 
-#include <Jet.h>
-#include <Lepton.h>
-#include <Particle.h>
-#include <Muon.h>
-#include <Photon.h>
-#include <Electron.h>
+#include "Jet.h"
+#include "Lepton.h"
+#include "Particle.h"
+#include "Muon.h"
+#include "Photon.h"
+#include "Electron.h"
+#include "Event.h"
+#include "Gen.h"
+#include "LHE.h"
+#include <vector>
 
 //in /cvmfs/cms.cern.ch/$(SCRAM_ARCH)/cms/$(cmsswrel)/src/PhysicsTools/KinFitter/interface
 #include "PhysicsTools/KinFitter/interface/TAbsFitParticle.h"
-#include <PhysicsTools/KinFitter/interface/TFitConstraintEp.h>
-#include <PhysicsTools/KinFitter/interface/TFitParticleMCCart.h>
-#include <PhysicsTools/KinFitter/interface/TKinFitter.h>
-#include <PhysicsTools/KinFitter/interface/TFitConstraintMGaus.h>
+#include "PhysicsTools/KinFitter/interface/TFitConstraintEp.h"
+#include "PhysicsTools/KinFitter/interface/TFitParticleMCCart.h"
+#include "PhysicsTools/KinFitter/interface/TKinFitter.h"
+#include "PhysicsTools/KinFitter/interface/TFitConstraintMGaus.h"
 
 //Redefined by B. Oh
-#include <TFitParticlePt.h>
+#include "TFitParticlePt.h"
 
-#include <Results_Container.h>
-#include <Results.h>
+#include "Results_Container.h"
+#include "Results.h"
 
 #define T_MASS 172.5
 #define T_WIDTH 1.5
@@ -40,7 +44,7 @@ class TKinFitterDriver : public TObject
   void Scan(); 
   //void Set_Objects(vector<Jet>& _vec_jet, vector<bool>& _vec, Lepton& _lepton, Particle& _met); 
   void Set_Objects(vector<bool>& _vec, Lepton& _lepton, Particle& _met);
-
+  
   //name convention: mother_species 
   enum JET_ASSIGNMENT {HAD_T_B, W_U, W_D, LEP_T_B, OTHERS}; 
   
@@ -51,12 +55,15 @@ class TKinFitterDriver : public TObject
   vector<bool> vec_btag; 
   Lepton lepton; 
   Particle met; 
-  
+
+  //vector<Gen> vec_gen_test;
+  //vector<Lepton> vec_test_lep;
+  //vector<Photon> vec_test_ph;
+  //vector<Electron> vec_test_el;
   vector<Jet> vec_test;
-  /* vector<Lepton> vec_test_lep; */
-  /* vector<Muon> vec_test_mu; */
-  /* vector<Electron> vec_test_el; */
-  /* vector<Photon> vec_test_ph; */
+  //vector<LHE> vec_lhc_test;
+  //vector<Event> vec_event_test;
+  //vector<Muon> vec_test_mu;
 
   vector<TKinFitterDriver::JET_ASSIGNMENT> vec_permutation; 
   int n_jet, n_btag; 
