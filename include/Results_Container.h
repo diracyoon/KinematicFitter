@@ -3,6 +3,8 @@
 
 #include <TObject.h>
 
+#include <Results.h>
+
 class Results_Container : public TObject
 {
  public:
@@ -15,13 +17,25 @@ class Results_Container : public TObject
     neutrino_pz_sol[0] = -9999;
     chk_real_neu_pz = false;
    
+    best_chi2 = 9999;
+    best_had_t_mass = 9999;
+    best_had_w_mass = 9999;
+    best_lep_t_mass = 9999;
+    best_lep_w_mass = 9999;
+
     return;
   }
   
   float neutrino_pz_sol[2];
   bool chk_real_neu_pz;
   
-  //vector<Results> vec_results;
+  float best_chi2;
+  float best_had_t_mass;
+  float best_had_w_mass;
+  float best_lep_t_mass;
+  float best_lep_w_mass;
+
+  vector<Results> vec_results;
   
   ClassDef(Results_Container, 1);
 };

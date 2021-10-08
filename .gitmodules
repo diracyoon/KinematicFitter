@@ -1,4 +1,0 @@
-[submodule "external/GEScaleSyst"]
-	path = external/GEScaleSyst
-	url = https://github.com/jedori0228/GEScaleSyst.git
-	branch = ForSKFlatAnalyzer

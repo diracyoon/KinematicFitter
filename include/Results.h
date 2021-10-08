@@ -20,7 +20,7 @@ public:
       index_lep_t_b = -1;
   }
 
-  enum CUT_RESULT {PASS, B_ASSIGNMENT, PREKINEMATIC, QUALITY};
+  enum CUT_RESULT {PASS, REPETITION, B_ASSIGNMENT, PREKINEMATIC, QUALITY};
 
   int status;
   CUT_RESULT cut;
