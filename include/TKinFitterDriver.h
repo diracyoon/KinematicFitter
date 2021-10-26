@@ -41,7 +41,7 @@ class TKinFitterDriver : public TObject
   TKinFitterDriver(int _data_year); 
   
   void Scan();  
-  void Set_Objects(vector<Jet>& _vec_jet, vector<bool>& _vec, Lepton& _lepton, Particle& _met);  
+  void Set_Objects(vector<Jet>& _vec_jet, vector<float>& _vec_resolution_pt, vector<bool>& _vec_btag, Lepton& _lepton, Particle& _met);  
   
   //name convention: mother_species  
   enum JET_ASSIGNMENT {HAD_T_B, W_U, W_D, LEP_T_B, OTHERS};  
@@ -50,6 +50,7 @@ class TKinFitterDriver : public TObject
   int data_year;  
   
   vector<Jet> vec_jet;  
+  vector<float> vec_resolution_pt;
   vector<bool> vec_btag;
   Lepton lepton;
   Particle met;

@@ -14,7 +14,7 @@ TKinFitterDriver::TKinFitterDriver(int _data_year)
   fitter->setMaxNbIter(5000);
   fitter->setMaxDeltaS(1e-2);//let 1e-2 be nominal, 1e-3 be high tolerence,1e-5 be very high tol.
   fitter->setMaxF(1e-2);//let 1e-2 be nominal, 1e-3 be high tolerence, 1e-4 be very high tol.
-  fitter->setVerbosity(0);
+  fitter->setVerbosity(2);
   //fitter->setVerbosity(1);
   
   
@@ -77,8 +77,10 @@ void TKinFitterDriver::Scan()
 	  Set_Fitter();
 
 	  //fit
+	  cout << "TKinFitterDriver::Scan test0" << endl;
  	  results.status = fitter->fit();
-	  
+	  cout << "TKinFitterDriver::Scan test1" << endl;
+
 	  if(!Quality_Cut())
             {
               results.cut = Results::CUT_RESULT::QUALITY;
@@ -99,11 +101,12 @@ void TKinFitterDriver::Scan()
 
 //////////
 
-void TKinFitterDriver::Set_Objects(vector<Jet>& _vec_jet, vector<bool>& _vec_btag, Lepton& _lepton, Particle& _met)
+void TKinFitterDriver::Set_Objects(vector<Jet>& _vec_jet, vector<float>& _vec_resolution_pt, vector<bool>& _vec_btag, Lepton& _lepton, Particle& _met)
 {
   Clear();
   
   vec_jet = _vec_jet;
+  vec_resolution_pt = _vec_resolution_pt;
   vec_btag = _vec_btag;
   lepton = _lepton;
   met = _met;
@@ -234,6 +237,9 @@ bool TKinFitterDriver::Check_Repetition()
  {
    vec_jet.clear();
    vec_jet.shrink_to_fit();
+
+   vec_resolution_pt.clear();
+   vec_resolution_pt.shrink_to_fit();
    
    vec_btag.clear();
    vec_btag.shrink_to_fit();
@@ -450,65 +456,74 @@ void TKinFitterDriver::Set_Jets()
   vec_error_jet_extra.shrink_to_fit();
 
   //assign
+  float jer_had_t_b = 0;
+  float jer_w_u = 0;
+  float jer_w_d = 0;
+  float jer_lep_t_b = 0;
+  vector<float> vec_jer_extra;
   for(unsigned int i=0; i<vec_permutation.size(); i++)
     {
       JET_ASSIGNMENT jet_assignment = vec_permutation.at(i);
       TLorentzVector jet = vec_jet.at(jet_assignment);
-
+      float jer = vec_resolution_pt.at(jet_assignment);
+      
       //for easy handling
       if(jet_assignment==HAD_T_B)
 	{
 	  results.index_had_t_b = jet_assignment;
 	  jet_had_t_b = jet;
+	  jer_had_t_b = jer;
 	} 
       else if(jet_assignment==W_U)
 	{
 	  results.index_w_u = jet_assignment;
 	  jet_w_u = jet;
+	  jer_w_u = jer;
 	}
       else if(jet_assignment==W_D) 
 	{
 	  results.index_w_d = jet_assignment;
 	  jet_w_d = jet;
+	  jer_w_d = jer;
 	}
       else if(jet_assignment==LEP_T_B) 
 	{
 	  results.index_lep_t_b = jet_assignment;
 	  jet_lep_t_b = jet;
+	  jer_lep_t_b = jer;
 	}
-      else if(jet_assignment==OTHERS) vec_jet_extra.push_back(jet);
+      else if(jet_assignment==OTHERS)
+	{
+	  vec_jet_extra.push_back(jet);
+	}
     }
 
   //construct fitting objects
   //too verbose code. but easier to read
   //b jet from hadronic top
   float pt = jet_had_t_b.Pt();
-  float jer = 1;//temp, should be fixed 
-  error_jet_had_t_b(0, 0) = jer*jer*pt*pt;
+  error_jet_had_t_b(0, 0) = jer_had_t_b*jer_had_t_b*pt*pt;
 
   fit_jet_had_t_b = new TFitParticlePt("B_From_Hadronic_Top", "B_From_Hadronic_Top", &jet_had_t_b, &error_jet_had_t_b);
   u_fit_jet_had_t_b.reset(fit_jet_had_t_b);
 
   //u type jet from W
   pt = jet_w_u.Pt();
-  jer = 1;//temp, should be fixed
-  error_jet_w_u(0, 0) = jer*jer*pt*pt;
+  error_jet_w_u(0, 0) = jer_w_u*jer_w_u*pt*pt;
 
   fit_jet_w_u = new TFitParticlePt("U_Type_From_W_From_Hadronic_Top", "U_Type_From_W_From_Hadronic_Top", &jet_w_u, &error_jet_w_u);
   u_fit_jet_w_u.reset(fit_jet_w_u);
 
   //d type jet from W
   pt = jet_w_d.Pt();
-  jer = 1;//temp, should be fixed
-  error_jet_w_d(0, 0) = jer*jer*pt*pt;
+  error_jet_w_d(0, 0) = jer_w_d*jer_w_d*pt*pt;
 
   fit_jet_w_d = new TFitParticlePt("D_Type_From_W_From_Hadronic_Top", "D_Type_From_W_From_Hadronic_Top", &jet_w_d, &error_jet_w_d);
   u_fit_jet_w_d.reset(fit_jet_w_d);
 
   //b jet from leptonic top  
   pt = jet_lep_t_b.Pt();
-  jer = 1;//temp, should be fixed
-  error_jet_lep_t_b(0, 0) = jer*jer*pt*pt;
+  error_jet_lep_t_b(0, 0) = jer_lep_t_b*jer_lep_t_b*pt*pt;
 
   fit_jet_lep_t_b = new TFitParticlePt("B_From_Leptonic_Top", "B_From_Leptonic_Top", &jet_lep_t_b, &error_jet_lep_t_b);
   u_fit_jet_lep_t_b.reset(fit_jet_lep_t_b);
@@ -517,13 +532,13 @@ void TKinFitterDriver::Set_Jets()
   for(unsigned int i=0; i<vec_jet_extra.size(); i++)
     {
       TLorentzVector jet_extra = vec_jet_extra.at(i);
-      
+      float jer_extra = vec_jer_extra.at(i);
+
       TMatrixD error_jet_extra;
       error_jet_extra.ResizeTo(1, 1);
       
       pt = jet_extra.Pt();
-      jer = 1;//temp, should be fixed
-      error_jet_extra(0, 0) = jer*jer*pt*pt;
+      error_jet_extra(0, 0) = jer_extra*jer_extra*pt*pt;
       vec_error_jet_extra.push_back(error_jet_extra);
       
       TString name_jet_extra = "Jet_Extra" + TString::Itoa(i, 10);
