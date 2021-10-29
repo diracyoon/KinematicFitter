@@ -118,14 +118,16 @@ class TKinFitterDriver : public TObject
 
   bool BJet_Assignment_Cut(); 
   float Calc_Chi2();
+  float Calc_Each_Chi2(TAbsFitConstraint* constraint, float mass, float width);
   float Calc_Each_Chi2(TAbsFitParticle* ptr);
   bool Check_Repetition();
   void Clear();
-  bool End_Permutation(){ return next_permutation(vec_permutation.begin(), vec_permutation.end()); } 
+  bool End_Permutation(){ return next_permutation(vec_permutation.begin(), vec_permutation.end()); }
+  void Find_Best_Permutation(); 
   bool Pre_Kinematic_Cut(); 
   void Print_Permutation();
   bool Quality_Cut();
-  void Resol_Neutrino_Pz();//not used currently 
+  void Resol_Neutrino_Pz(){};//not used currently 
   void Save_Permutation(const bool& push=false);
   void Save_Results();
   void Set_Constraints();

@@ -13,16 +13,21 @@ class Results_Container : public TObject
   
   void Reset()
   {
-    neutrino_pz_sol[0] = -9999;
-    neutrino_pz_sol[0] = -9999;
+    neutrino_pz_sol[0] = 99999;
+    neutrino_pz_sol[0] = 99999;
     chk_real_neu_pz = false;
    
-    best_chi2 = 9999;
-    best_had_t_mass = 9999;
-    best_had_w_mass = 9999;
-    best_lep_t_mass = 9999;
-    best_lep_w_mass = 9999;
-
+    best_chi2 = 99999;
+    
+    best_initial_had_t_mass = 99999;
+    best_initial_had_w_mass = 99999;
+    best_initial_lep_t_mass = 99999;
+    best_initial_lep_w_mass = 99999;
+    
+    best_fitted_had_t_mass = 99999;
+    best_fitted_had_w_mass = 99999;
+    best_fitted_lep_t_mass = 99999;
+    best_fitted_lep_w_mass = 99999;
 
     vec_results.clear();
     vec_results.shrink_to_fit();
@@ -34,10 +39,16 @@ class Results_Container : public TObject
   bool chk_real_neu_pz;
   
   float best_chi2;
-  float best_had_t_mass;
-  float best_had_w_mass;
-  float best_lep_t_mass;
-  float best_lep_w_mass;
+  
+  float best_initial_had_t_mass;
+  float best_initial_had_w_mass;
+  float best_initial_lep_t_mass;
+  float best_initial_lep_w_mass;
+
+  float best_fitted_had_t_mass;
+  float best_fitted_had_w_mass;
+  float best_fitted_lep_t_mass;
+  float best_fitted_lep_w_mass;
 
   vector<Results> vec_results;
   
