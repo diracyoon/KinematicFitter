@@ -18,12 +18,15 @@
 #include "PhysicsTools/KinFitter/interface/TAbsFitParticle.h"
 #include "PhysicsTools/KinFitter/interface/TFitConstraintEp.h"
 #include "PhysicsTools/KinFitter/interface/TFitParticleMCCart.h"
-#include "PhysicsTools/KinFitter/interface/TKinFitter.h"
 #include "PhysicsTools/KinFitter/interface/TFitConstraintMGaus.h"
+
+#include "PhysicsTools/KinFitter/interface/TKinFitter.h"
+//#include "TKinFitter_mod.h"
 
 //Redefined by B. Oh
 #include "TFitParticlePt.h"
 
+#include "Enum_Def.h"
 #include "Results_Container.h"
 #include "Results.h"
 
@@ -44,18 +47,20 @@ class TKinFitterDriver : public TObject
   void Set_Objects(vector<Jet>& _vec_jet, vector<float>& _vec_resolution_pt, vector<bool>& _vec_btag, Lepton& _lepton, Particle& _met);  
   
   //name convention: mother_species  
-  enum JET_ASSIGNMENT {HAD_T_B, W_U, W_D, LEP_T_B, OTHERS};  
+  //enum JET_ASSIGNMENT {HAD_T_B, W_U, W_D, LEP_T_B, OTHERS};  
   
  protected:  
   int data_year;  
   
+  int index_neutrino_sol;
+
   vector<Jet> vec_jet;  
   vector<float> vec_resolution_pt;
   vector<bool> vec_btag;
   Lepton lepton;
   Particle met;
 
-  vector<TKinFitterDriver::JET_ASSIGNMENT> vec_permutation;  
+  vector<JET_ASSIGNMENT> vec_permutation;
   int n_jet, n_btag;  
   
   //for easy permutation handling 
@@ -118,6 +123,7 @@ class TKinFitterDriver : public TObject
   void Clear();
   bool End_Permutation(){ return next_permutation(vec_permutation.begin(), vec_permutation.end()); } 
   bool Pre_Kinematic_Cut(); 
+  void Print_Permutation();
   bool Quality_Cut();
   void Resol_Neutrino_Pz();//not used currently 
   void Save_Permutation(const bool& push=false);
@@ -126,7 +132,7 @@ class TKinFitterDriver : public TObject
   void Set_Fitter();
   void Set_Jets();  
   void Set_Lepton(); 
-  void Set_Neutrino(const int& index); 
+  void Set_Neutrino(); 
   void Sol_Neutrino_Pz(); 
 
   ClassDef(TKinFitterDriver, 1);

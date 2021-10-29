@@ -23,6 +23,10 @@ class Results_Container : public TObject
     best_lep_t_mass = 9999;
     best_lep_w_mass = 9999;
 
+
+    vec_results.clear();
+    vec_results.shrink_to_fit();
+    
     return;
   }
   
