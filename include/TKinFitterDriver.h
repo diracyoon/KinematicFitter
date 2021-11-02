@@ -43,11 +43,10 @@ class TKinFitterDriver : public TObject
   TKinFitterDriver(){};
   TKinFitterDriver(int _data_year); 
   
+  bool Check_Status(){ return results_container.status; }
+  Results_Container Get_Results(){ return results_container; }
   void Scan();  
   void Set_Objects(vector<Jet>& _vec_jet, vector<float>& _vec_resolution_pt, vector<bool>& _vec_btag, Lepton& _lepton, Particle& _met);  
-  
-  //name convention: mother_species  
-  //enum JET_ASSIGNMENT {HAD_T_B, W_U, W_D, LEP_T_B, OTHERS};  
   
  protected:  
   int data_year;  

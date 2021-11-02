@@ -85,10 +85,8 @@ void TKinFitterDriver::Scan()
 	  Set_Fitter();
 
 	  //fit
-	  cout << "TKinFitterDriver::Scan start fit" << endl;
- 	  results.status = fitter->fit();
-	  cout << "TKinFitterDriver::Scan finish fit" << endl;
-
+	  results.status = fitter->fit();
+	  
 	  // if(!Quality_Cut())
           //   {
           //     results.cut = CUT_RESULT::QUALITY;
@@ -286,6 +284,45 @@ bool TKinFitterDriver::Check_Repetition()
 
 void TKinFitterDriver::Find_Best_Permutation()
 {
+  const float chi2_max = 99999;
+  float chi2_best = chi2_max;
+  int i_best = 0;
+  for(unsigned int i=0; i<results_container.vec_results.size(); i++)
+    {
+      Results results = results_container.vec_results.at(i);
+           
+      if(results.chi2<chi2_best && results.cut==CUT_RESULT::PASS)
+	{
+	  i_best = i;
+	  chi2_best = results.chi2;
+	}
+    }
+  
+  if(chi2_best<0.99*chi2_max)//arbitary number to avoid ambiguity of float comparison
+    {
+      results_container.status = true;
+      results_container.best_chi2 = chi2_best;
+      
+      Results results = results_container.vec_results.at(i_best);
+      
+      results_container.best_index_had_t_b = results.index_had_t_b;
+      results_container.best_index_w_u = results.index_w_u;
+      results_container.best_index_w_d = results.index_w_d;
+      results_container.best_index_lep_t_b = results.index_lep_t_b;
+      
+      results_container.best_initial_had_t_mass = results.initial_had_t_mass;
+      results_container.best_initial_had_w_mass = results.initial_had_w_mass;
+      results_container.best_initial_lep_t_mass = results.initial_lep_t_mass;
+      results_container.best_initial_lep_w_mass = results.initial_lep_w_mass;
+      
+      results_container.best_fitted_had_t_mass = results.fitted_had_t_mass;
+      results_container.best_fitted_had_w_mass = results.fitted_had_w_mass;
+      results_container.best_fitted_lep_t_mass = results.fitted_lep_t_mass;
+      results_container.best_fitted_lep_w_mass = results.fitted_lep_w_mass;
+    }
+  
+  //cout << results_container.best_chi2 << " " <<  results_container.best_fitted_had_t_mass << " " <<  results_container.best_fitted_had_w_mass << endl;
+  
   return;
 }//void TKinFitterDriver::Find_Best_Permutation()
 
@@ -305,9 +342,9 @@ bool TKinFitterDriver::Pre_Kinematic_Cut()
 
   bool had_t_mass_cut = false;
   double had_t_mass = had_t.M();
-  if(n_jet==4 && 100<had_t_mass && 240<had_t_mass) had_t_mass_cut = true;
-  else if(n_jet==5 && 120<had_t_mass && 220<had_t_mass) had_t_mass_cut = true;
-  else if(n_jet>=6 && 140<had_t_mass && 200<had_t_mass) had_t_mass_cut = true;
+  if(n_jet==4 && 100<had_t_mass && had_t_mass<240) had_t_mass_cut = true;
+  else if(n_jet==5 && 120<had_t_mass && had_t_mass<220) had_t_mass_cut = true;
+  else if(n_jet>=6 && 140<had_t_mass && had_t_mass<200) had_t_mass_cut = true;
   if(!had_t_mass_cut) return false;
 
   bool lep_t_mass_cut = false;
@@ -355,7 +392,8 @@ bool TKinFitterDriver::Quality_Cut()
   float chi2_jet_w_d = Calc_Each_Chi2(fit_jet_w_d);
   float chi2_jet_lep_t_b = Calc_Each_Chi2(fit_jet_lep_t_b);
 
-  if(chi2_jet_had_t_b<9 && chi2_jet_w_u<9 &&  chi2_jet_w_d<9 && chi2_jet_lep_t_b<9) return true;
+  //results.status=0 converged, results.status=1 not converged
+  if(results.status==0 && chi2_jet_had_t_b<9 && chi2_jet_w_u<9 &&  chi2_jet_w_d<9 && chi2_jet_lep_t_b<9) return true;
   else return false;
 
   //dummy
@@ -411,8 +449,9 @@ void TKinFitterDriver::Save_Results()
   
   tmp = fit_lepton->getCurr4Vec();
   TLorentzVector fitted_lepton(tmp->Px(), tmp->Py(), tmp->Pz(), tmp->E());
-
-  TLorentzVector fitted_neutrino;//should be fixed
+  
+  tmp = fit_neutrino->getCurr4Vec();
+  TLorentzVector fitted_neutrino(tmp->Px(), tmp->Py(), tmp->Pz(), tmp->E());
   
   TLorentzVector fitted_had_t = fitted_jet_had_t_b + fitted_jet_w_u + fitted_jet_w_d;
   TLorentzVector fitted_had_w = fitted_jet_w_u + fitted_jet_w_d;
@@ -431,7 +470,6 @@ void TKinFitterDriver::Save_Results()
   results.fitted_lep_t_mass = fitted_lep_t.M();
   results.fitted_lep_w_mass = fitted_lep_w.M();
  
-  cout << "Chi2 = " << results.chi2 << ", Intial M_w = " << initial_had_w.M() << ", Fitted M_w = " << fitted_had_w.M() << endl;
   results_container.vec_results.push_back(results);
   
   return;
@@ -526,7 +564,7 @@ void TKinFitterDriver::Set_Fitter()
   for(auto& fit_jet_extra : vec_fit_jet_extra) fitter->addMeasParticle(fit_jet_extra);
   
   //register unmeasure particles
-  fitter->addMeasParticle(fit_neutrino);
+  fitter->addUnmeasParticle(fit_neutrino);
 
   //register constraints
   fitter->addConstraint(constraint_had_t_mgaus);
@@ -559,43 +597,45 @@ void TKinFitterDriver::Set_Jets()
 
   vec_error_jet_extra.clear();
   vec_error_jet_extra.shrink_to_fit();
-
+ 
   //assign
-  float jer_had_t_b = 0;
-  float jer_w_u = 0;
-  float jer_w_d = 0;
-  float jer_lep_t_b = 0;
   vector<float> vec_jer_extra;
   for(unsigned int i=0; i<vec_permutation.size(); i++)
     {
       JET_ASSIGNMENT jet_assignment = vec_permutation.at(i);
+      
       TLorentzVector jet = vec_jet.at(i);
+      float pt = jet.Pt();
       float jer = vec_resolution_pt.at(i);
       
       //for easy handling
       if(jet_assignment==JET_ASSIGNMENT::HAD_T_B)
 	{
 	  results.index_had_t_b = i;
+	  
 	  jet_had_t_b = jet;
-	  jer_had_t_b = jer;
+	  error_jet_had_t_b(0, 0) = jer*jer*pt*pt;
 	} 
       else if(jet_assignment==JET_ASSIGNMENT::W_U)
 	{
 	  results.index_w_u = i;
+	  
 	  jet_w_u = jet;
-	  jer_w_u = jer;
+	  error_jet_w_u(0, 0) = jer*jer*pt*pt;
 	}
       else if(jet_assignment==JET_ASSIGNMENT::W_D) 
 	{
 	  results.index_w_d = i;
+	  
 	  jet_w_d = jet;
-	  jer_w_d = jer;
+	  error_jet_w_d(0, 0) = jer*jer*pt*pt;
 	}
       else if(jet_assignment==JET_ASSIGNMENT::LEP_T_B) 
 	{
 	  results.index_lep_t_b = i;
+	  
 	  jet_lep_t_b = jet;
-	  jer_lep_t_b = jer;
+	  error_jet_lep_t_b(0, 0) = jer*jer*pt*pt;
 	}
       else if(jet_assignment==JET_ASSIGNMENT::OTHERS)
 	{
@@ -607,30 +647,18 @@ void TKinFitterDriver::Set_Jets()
   //construct fitting objects
   //too verbose code. but easier to read
   //b jet from hadronic top
-  float pt = jet_had_t_b.Pt();
-  error_jet_had_t_b(0, 0) = jer_had_t_b*jer_had_t_b*pt*pt;
- 
   fit_jet_had_t_b = new TFitParticlePt("B_From_Hadronic_Top", "B_From_Hadronic_Top", &jet_had_t_b, &error_jet_had_t_b);
   u_fit_jet_had_t_b.reset(fit_jet_had_t_b);
 
   //u type jet from W
-  pt = jet_w_u.Pt();
-  error_jet_w_u(0, 0) = jer_w_u*jer_w_u*pt*pt;
-
   fit_jet_w_u = new TFitParticlePt("U_Type_From_W_From_Hadronic_Top", "U_Type_From_W_From_Hadronic_Top", &jet_w_u, &error_jet_w_u);
   u_fit_jet_w_u.reset(fit_jet_w_u);
 
   //d type jet from W
-  pt = jet_w_d.Pt();
-  error_jet_w_d(0, 0) = jer_w_d*jer_w_d*pt*pt;
-
   fit_jet_w_d = new TFitParticlePt("D_Type_From_W_From_Hadronic_Top", "D_Type_From_W_From_Hadronic_Top", &jet_w_d, &error_jet_w_d);
   u_fit_jet_w_d.reset(fit_jet_w_d);
 
   //b jet from leptonic top  
-  pt = jet_lep_t_b.Pt();
-  error_jet_lep_t_b(0, 0) = jer_lep_t_b*jer_lep_t_b*pt*pt;
-
   fit_jet_lep_t_b = new TFitParticlePt("B_From_Leptonic_Top", "B_From_Leptonic_Top", &jet_lep_t_b, &error_jet_lep_t_b);
   u_fit_jet_lep_t_b.reset(fit_jet_lep_t_b);
  
@@ -643,7 +671,7 @@ void TKinFitterDriver::Set_Jets()
       TMatrixD error_jet_extra;
       error_jet_extra.ResizeTo(1, 1);
       
-      pt = jet_extra.Pt();
+      float pt = jet_extra.Pt();
       error_jet_extra(0, 0) = jer_extra*jer_extra*pt*pt;
       vec_error_jet_extra.push_back(error_jet_extra);
       
@@ -667,7 +695,7 @@ void TKinFitterDriver::Set_Lepton()
   float pt = lepton.Pt();
   
   error_lepton.ResizeTo(1, 1);
-  error_lepton(0, 0) = TMath::Power(0.0000001*pt, 2);
+  error_lepton(0, 0) = TMath::Power(0.0001*pt, 2);
   
   fit_lepton = new TFitParticlePt("Fit_Lepton", "Fit_Lepton", &lepton, &error_lepton);
   u_fit_lepton.reset(fit_lepton);
