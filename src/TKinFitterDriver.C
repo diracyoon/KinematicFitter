@@ -77,7 +77,6 @@ void TKinFitterDriver::Scan()
 	      continue;
 	    }
 
-	  
 	  //contruct TFitConstraint objects
 	  Set_Constraints();
 
@@ -87,13 +86,13 @@ void TKinFitterDriver::Scan()
 	  //fit
 	  results.status = fitter->fit();
 	  
-	  // if(!Quality_Cut())
-          //   {
-          //     results.cut = CUT_RESULT::QUALITY;
-	  //     Save_Permutation(true);
+	  if(!Quality_Cut())
+            {
+              results.cut = CUT_RESULT::QUALITY;
+	      Save_Permutation(true);
 
-          //     continue;
-          //   }
+              continue;
+            }
 
 	  results.cut = CUT_RESULT::PASS;
 	  
