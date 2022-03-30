@@ -4,9 +4,10 @@ ClassImp(TKinFitterDriver);
 
 //////////
 
-TKinFitterDriver::TKinFitterDriver(int _data_year)
+TKinFitterDriver::TKinFitterDriver(int _data_year, bool _rm_wm_constraint)
 {
   data_year = _data_year;
+  rm_wm_constraint = _rm_wm_constraint;
 
   fitter = new TKinFitter("Fitter", "Fitter");
   u_ptr_fitter.reset(fitter);
@@ -568,7 +569,7 @@ void TKinFitterDriver::Set_Fitter()
   //register constraints
   fitter->addConstraint(constraint_had_t_mgaus);
   fitter->addConstraint(constraint_lep_t_mgaus);
-  fitter->addConstraint(constraint_had_w_mgaus);
+  if(!rm_wm_constraint) fitter->addConstraint(constraint_had_w_mgaus);
   fitter->addConstraint(constraint_lep_w_mgaus);
   fitter->addConstraint(constraint_px);
   fitter->addConstraint(constraint_py);

@@ -41,7 +41,7 @@ class TKinFitterDriver : public TObject
 {
  public:
   TKinFitterDriver(){};
-  TKinFitterDriver(int _data_year); 
+  TKinFitterDriver(int _data_year, bool _rm_wm_constraint=false); 
   
   bool Check_Status(){ return results_container.status; }
   Results_Container Get_Results(){ return results_container; }
@@ -50,6 +50,7 @@ class TKinFitterDriver : public TObject
   
  protected:  
   int data_year;  
+  bool rm_wm_constraint;
   
   int index_neutrino_sol;
 
