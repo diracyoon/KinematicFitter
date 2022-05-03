@@ -45,36 +45,42 @@ void TKinFitterDriver::Scan()
       //loopsd over jet permutation
       do
 	{
-	  //Print_Permutation();
+	  Print_Permutation();
 	  
 	  results.Reset();
 	
 	  //each t quark should contain at least one 
 	  if(!BJet_Assignment_Cut())
             {
-              results.cut = CUT_RESULT::B_ASSIGNMENT;
+	      results.cut = CUT_RESULT::B_ASSIGNMENT;
               Save_Permutation(true);
-          
+	      
+	      cout << "Cut B Assignment" << endl;
+	      
               continue;
             }
 
 	  //check repetition
 	  //For KF, permutations within W cadidates are meaningless. So reject these permutation to save time
-	  if(!Check_Repetition())
-	    {
-	      results.cut = CUT_RESULT::REPETITION;
-	      Save_Permutation(true);
+	  // if(!Check_Repetition())
+	  //   {
+	  //     results.cut = CUT_RESULT::REPETITION;
+	  //     Save_Permutation(true);
 	      
-	      continue;
-	    }
+	  //     continue;
+	  //   }
 	  
 	  Set_Jets();
 
+	  //very useful to reduce computation time
+	  //
 	  if(!Pre_Kinematic_Cut())
 	    {
 	      results.cut = CUT_RESULT::PRE_KINEMATIC;
 	      Save_Permutation(true);
 	  
+	      cout << "Cut Pre Kin" << endl;
+
 	      continue;
 	    }
 
@@ -86,17 +92,29 @@ void TKinFitterDriver::Scan()
 
 	  //fit
 	  results.status = fitter->fit();
-	  
-	  if(!Quality_Cut())
-            {
-              results.cut = CUT_RESULT::QUALITY;
-	      Save_Permutation(true);
 
-              continue;
-            }
+	  //not sure quality cut is useful at this stage
+	  // if(!Quality_Cut())
+          //   {
+          //     results.cut = CUT_RESULT::QUALITY;
+	  //     Save_Permutation(true);
+
+	  //     cout << "Cut Quality cut" << endl;
+	      
+	  //     float chi2_jet_had_t_b = Calc_Each_Chi2(fit_jet_had_t_b);
+	  //     float chi2_jet_w_u = Calc_Each_Chi2(fit_jet_w_u);
+	  //     float chi2_jet_w_d = Calc_Each_Chi2(fit_jet_w_d);
+	  //     float chi2_jet_lep_t_b = Calc_Each_Chi2(fit_jet_lep_t_b);
+
+	  //     cout << "chi2_jet_had_t_b = " << chi2_jet_had_t_b << ", chi2_jet_w_u = " << chi2_jet_w_u << ", chi2_jet_w_d = " << chi2_jet_w_d << ", chi2_jet_lep_t_b = " << chi2_jet_lep_t_b << endl;
+	      
+          //     continue;
+          //   }
 
 	  results.cut = CUT_RESULT::PASS;
 	  
+	  cout << "chi2 = " << Calc_Chi2() << endl;
+
 	  //Save
  	  Save_Results();
 
@@ -113,7 +131,7 @@ void TKinFitterDriver::Scan()
 
 //////////
 
-void TKinFitterDriver::Set_Objects(vector<Jet>& _vec_jet, vector<float>& _vec_resolution_pt, vector<bool>& _vec_btag, Lepton& _lepton, Particle& _met)
+void TKinFitterDriver::Set_Objects(vector<Jet>& _vec_jet, vector<float>& _vec_resolution_pt, vector<bool>& _vec_btag, Lepton& _lepton, Particle& _met, bool _chk_matched, int* _index_matched_jet)
 {
   Clear();
   
@@ -123,26 +141,56 @@ void TKinFitterDriver::Set_Objects(vector<Jet>& _vec_jet, vector<float>& _vec_re
   lepton = _lepton;
   met = _met;
   
+  chk_matched = _chk_matched;
+    
   n_jet = vec_jet.size();
   int n_vec_resolution_pt = vec_resolution_pt.size();
   int n_vec_btag = vec_btag.size();
+  
   if(n_jet!=n_vec_resolution_pt || n_jet!=n_vec_btag)
     {
       cerr << "The size of two vectors are not same. Check it." << endl;
       cerr << "Size of jet vector = " << n_jet << ", Size of btagger vector = " << n_vec_btag << endl;
-      
+
       exit(1);
     }
   
-  for(int i=0; i<n_jet; i++)
+  //in case matched jets are provided
+  if(chk_matched==true)
+    {
+      vec_jet.clear();
+      vec_resolution_pt.clear();
+      vec_btag.clear();
+      
+      for(int i=0; i<4; ++i) index_matched_jet[i] = _index_matched_jet[i];
+
+      for(int i=0; i<n_jet; ++i)
+        {
+	  if(!Included_Matched_Jet(i)) continue;
+	  
+	  vec_jet.push_back(_vec_jet[i]);
+	  vec_resolution_pt.push_back(_vec_resolution_pt[i]);
+	  vec_btag.push_back(_vec_btag[i]);
+	  
+	  cout << "(i = " << i << ", b-tag = " << _vec_btag[i] << "), ";
+	}
+      cout << endl;
+      
+      n_jet = 4;
+    
+      //correct permutation
+      Index_To_Permutation();
+    }
+
+  for(int i=0; i<n_jet; ++i)
     { 
       if(i==0) vec_permutation.push_back(HAD_T_B);
       else if(i==1) vec_permutation.push_back(W_U);
       else if(i==2) vec_permutation.push_back(W_D);
       else if(i==3) vec_permutation.push_back(LEP_T_B);
       else  vec_permutation.push_back(OTHERS);
-      
-      if(vec_btag.at(i)==true) n_btag++; 
+  
+      if(vec_btag.at(i)==true) n_btag++;
     }
   
   Set_Lepton();
@@ -176,7 +224,6 @@ bool TKinFitterDriver::BJet_Assignment_Cut()
 float TKinFitterDriver::Calc_Chi2()
 {
   float chi2 = 0;
-
   chi2 += Calc_Each_Chi2(fit_jet_had_t_b);
   chi2 += Calc_Each_Chi2(fit_jet_w_u);
   chi2 += Calc_Each_Chi2(fit_jet_w_d);
@@ -191,6 +238,17 @@ float TKinFitterDriver::Calc_Chi2()
   chi2 += Calc_Each_Chi2(constraint_had_w_mgaus, W_MASS, W_WIDTH);
   chi2 += Calc_Each_Chi2(constraint_lep_w_mgaus, W_MASS, W_WIDTH);
 
+  // cout << "test calc_chi2" << endl;
+  // cout << "chi2_had_t_b = " << Calc_Each_Chi2(fit_jet_had_t_b) << endl;
+  // cout << "chi2_w_u = " << Calc_Each_Chi2(fit_jet_w_u) << endl;
+  // cout << "chi2_w_d = " << Calc_Each_Chi2(fit_jet_w_d) << endl;
+  // cout << "chi2_lep_t_b = " << Calc_Each_Chi2(fit_jet_lep_t_b) << endl;
+  // cout << "chi2_lepton = " << Calc_Each_Chi2(fit_lepton) << endl;
+  // cout << "chi2_had_t = " << Calc_Each_Chi2(constraint_had_t_mgaus, T_MASS, T_WIDTH) << endl;
+  // cout << "chi2_lep_t = " << Calc_Each_Chi2(constraint_lep_t_mgaus, T_MASS, T_WIDTH) << endl;
+  // cout << "chi2_had_w = " << Calc_Each_Chi2(constraint_had_w_mgaus, W_MASS, W_WIDTH) << endl;
+  // cout << "chi2_lep_w = " << Calc_Each_Chi2(constraint_lep_w_mgaus, W_MASS, W_WIDTH) << endl;
+    
   return chi2;
 }//float TKinFitterDriver::Calc_Chi2()
 
@@ -201,7 +259,7 @@ float TKinFitterDriver::Calc_Each_Chi2(TAbsFitConstraint* constraint, float mass
   const TMatrixD* currPar = constraint->getParCurr();
   float deltaY = 1 - (*currPar)(0, 0);
   float chi2 = (mass*mass)*(deltaY*deltaY)/(width*width); 
-  
+
   return chi2;
 }//float Calc_Each_Chi2(TAbsFitConstraint* ptr, float mass, float width)
 
@@ -228,7 +286,8 @@ float TKinFitterDriver::Calc_Each_Chi2(TAbsFitParticle* ptr)
 bool TKinFitterDriver::Check_Repetition()
 {
   //Although vec_permutation distinguishes w_u, and w_d, fitter doesn't care this permutation. Therefore this permutation would be ignored to save computation time 
-  
+  //the above is obsolete because BJetRegression do distinguish
+
   //current permutation
   int index_had_t_b=-1;
   int index_w_u=-1;
@@ -274,10 +333,19 @@ bool TKinFitterDriver::Check_Repetition()
    vec_permutation.clear();
    vec_permutation.shrink_to_fit();
    
+   chk_matched = false;
+   
+   for(int i=0; i<4; ++i)
+     {
+       index_matched_jet[i] = -999;
+     }
+
    n_jet = 0;
    n_btag = 0;
    
    return;
+   
+
  }//void TKinFitterDriver::Clear()
 
 //////////
@@ -298,7 +366,7 @@ void TKinFitterDriver::Find_Best_Permutation()
 	}
     }
   
-  if(chi2_best<0.99*chi2_max)//arbitary number to avoid ambiguity of float comparison
+  if(chi2_best<0.99*chi2_max)//In case KF couldn't find any conserved permutation. 0.99 is arbitary number to avoid ambiguity of float comparison
     {
       results_container.status = true;
       results_container.best_chi2 = chi2_best;
@@ -328,30 +396,104 @@ void TKinFitterDriver::Find_Best_Permutation()
 
 //////////
 
+bool TKinFitterDriver::Included_Matched_Jet(const int& index)
+{
+  for(int i=0; i<4; ++i)
+    {
+      if(index==index_matched_jet[i]) return true;
+    }
+  
+  return false;
+}//bool TKinFitterDriver::Included_Matched_Jet(const int& i)
+
+//////////
+
+void TKinFitterDriver::Index_To_Permutation()
+{
+  cout << "test Index_To_Permutation" << endl;
+
+  for(int i=0; i<4; ++i) correct_permutation[i] = -999;
+
+  for(int i=0; i<4; ++i)
+    {
+      int index;
+      int rank = 0;
+      int smallest = 999;
+      for(int j=0; j<4; ++j)
+        {
+          if(correct_permutation[j]!=-999)
+            {
+              ++rank;
+              continue;
+            }
+
+          if(index_matched_jet[j]<smallest)
+            {
+              smallest = index_matched_jet[j];
+              index = j;
+            }
+        }
+
+      correct_permutation[index] = rank;
+    }
+
+  for(int i=0; i<4; ++i)
+    {
+      cout << correct_permutation[i] << " ";
+    }
+  cout << endl;
+  
+  return;
+}//void TKinFitterDriver::Index_To_Permutation()
+
+//////////
+
 bool TKinFitterDriver::Pre_Kinematic_Cut()
 {
+  //convention
+  //true: event passes the cut
+  //false: event is cut by the cut
+  
+  //cout << "test Pre_Kinematic_Cut" << endl;
+  
   bool jet_pt_cut = false;
   if(jet_lep_t_b.Pt()>30) jet_pt_cut = true;//need to be tuned more
-  if(!jet_pt_cut) return false;
-
+  if(!jet_pt_cut)
+    {
+      cout << "jet_pt_cut" << endl;
+      return false;
+    }
+  
   TLorentzVector had_t = jet_had_t_b + jet_w_u + jet_w_d;
   TLorentzVector lep_t = jet_lep_t_b + lepton + neutrino;
 
-  bool tt_angular_cut = (TMath::Abs(had_t.DeltaPhi(lep_t) > 1.5)) ? true : false;
-  if(!tt_angular_cut) return false;
+  bool tt_angular_cut = TMath::Abs(had_t.DeltaPhi(lep_t))>1.5 ? true : false;
+  if(tt_angular_cut==false)
+    {
+      cout << "tt_angular_cut " << tt_angular_cut << " " << TMath::Abs(had_t.DeltaPhi(lep_t)) << endl;
+      return false;
+    }
 
   bool had_t_mass_cut = false;
   double had_t_mass = had_t.M();
   if(n_jet==4 && 100<had_t_mass && had_t_mass<240) had_t_mass_cut = true;
   else if(n_jet==5 && 120<had_t_mass && had_t_mass<220) had_t_mass_cut = true;
   else if(n_jet>=6 && 140<had_t_mass && had_t_mass<200) had_t_mass_cut = true;
-  if(!had_t_mass_cut) return false;
-
+  if(!had_t_mass_cut)
+    {
+      cout << "had_t_mass_cut" << endl;
+      return false;
+    }
+  
   bool lep_t_mass_cut = false;
   TLorentzVector partial_lep_t = jet_lep_t_b + lepton;
   if(partial_lep_t.M()<150) lep_t_mass_cut = true;
-  if(!lep_t_mass_cut) return false;
-
+  if(!lep_t_mass_cut)
+    {
+      cout << "lep_t_mass_cut" << endl;
+      return false;
+    }
+  
   return true;
 }//bool TKinFitterDriver::Pre_Kinematic_Cut()
 
@@ -359,10 +501,6 @@ bool TKinFitterDriver::Pre_Kinematic_Cut()
 
 void TKinFitterDriver::Print_Permutation()
 {
-  cout << "Permutation: ";
-  for(unsigned int i=0; i<vec_permutation.size(); i++){ cout << vec_permutation.at(i) << ", "; }
-  cout << endl;
-
   //current permutation
   int index_had_t_b=-1;
   int index_w_u=-1;
@@ -393,7 +531,7 @@ bool TKinFitterDriver::Quality_Cut()
   float chi2_jet_lep_t_b = Calc_Each_Chi2(fit_jet_lep_t_b);
 
   //results.status=0 converged, results.status=1 not converged
-  if(results.status==0 && chi2_jet_had_t_b<9 && chi2_jet_w_u<9 &&  chi2_jet_w_d<9 && chi2_jet_lep_t_b<9) return true;
+  if(results.status==0 && chi2_jet_had_t_b<25 && chi2_jet_w_u<25 &&  chi2_jet_w_d<25 && chi2_jet_lep_t_b<25) return true;
   else return false;
 
   //dummy
@@ -558,7 +696,7 @@ void TKinFitterDriver::Set_Fitter()
   //register measured particles
   fitter->addMeasParticle(fit_lepton);
   fitter->addMeasParticle(fit_jet_had_t_b);
-  fitter->addMeasParticle(fit_jet_w_d);
+  fitter->addMeasParticle(fit_jet_w_u);
   fitter->addMeasParticle(fit_jet_w_d);
   fitter->addMeasParticle(fit_jet_lep_t_b);
   for(auto& fit_jet_extra : vec_fit_jet_extra) fitter->addMeasParticle(fit_jet_extra);
@@ -604,16 +742,24 @@ void TKinFitterDriver::Set_Jets()
     {
       JET_ASSIGNMENT jet_assignment = vec_permutation.at(i);
       
-      TLorentzVector jet = vec_jet.at(i);
-      float pt = jet.Pt();
-      float jer = vec_resolution_pt.at(i);
+      Jet jet = vec_jet.at(i);
       
+      float pt = jet.Pt();
+      float eta = jet.Eta();
+      float phi = jet.Phi();
+      float m = jet.M();
+
       //for easy handling
       if(jet_assignment==JET_ASSIGNMENT::HAD_T_B)
 	{
 	  results.index_had_t_b = i;
 	  
 	  jet_had_t_b = jet;
+	  
+	  float corr = jet.GetBJetRegressionNN("BCorr"); 
+	  jet_had_t_b.SetPtEtaPhiM(corr*pt, eta, phi, m);
+	  
+	  float jer = jet.GetBJetRegressionNN("BRes"); 
 	  error_jet_had_t_b(0, 0) = jer*jer*pt*pt;
 	} 
       else if(jet_assignment==JET_ASSIGNMENT::W_U)
@@ -621,6 +767,11 @@ void TKinFitterDriver::Set_Jets()
 	  results.index_w_u = i;
 	  
 	  jet_w_u = jet;
+	  
+	  float corr = jet.GetBJetRegressionNN("CCorr");
+	  jet_w_u.SetPtEtaPhiM(corr*pt, eta, phi, m);
+
+	  float jer = jet.GetBJetRegressionNN("CRes");
 	  error_jet_w_u(0, 0) = jer*jer*pt*pt;
 	}
       else if(jet_assignment==JET_ASSIGNMENT::W_D) 
@@ -628,6 +779,11 @@ void TKinFitterDriver::Set_Jets()
 	  results.index_w_d = i;
 	  
 	  jet_w_d = jet;
+
+	  float corr = jet.GetBJetRegressionNN("BCorr");
+          jet_w_d.SetPtEtaPhiM(corr*pt, eta, phi, m);
+	  
+	  float jer = jet.GetBJetRegressionNN("BRes");
 	  error_jet_w_d(0, 0) = jer*jer*pt*pt;
 	}
       else if(jet_assignment==JET_ASSIGNMENT::LEP_T_B) 
@@ -635,11 +791,22 @@ void TKinFitterDriver::Set_Jets()
 	  results.index_lep_t_b = i;
 	  
 	  jet_lep_t_b = jet;
+
+	  float corr = jet.GetBJetRegressionNN("BCorr");
+          jet_lep_t_b.SetPtEtaPhiM(corr*pt, eta, phi, m);
+	  
+	  float jer = jet.GetBJetRegressionNN("BRes");
 	  error_jet_lep_t_b(0, 0) = jer*jer*pt*pt;
 	}
       else if(jet_assignment==JET_ASSIGNMENT::OTHERS)
 	{
 	  vec_jet_extra.push_back(jet);
+	  
+	  float jer = 0;
+	  //b tagged
+	  if(vec_btag.at(i)==true) jer = jet.GetBJetRegressionNN("BRes");
+	  else jer = vec_resolution_pt.at(i);
+	  
 	  vec_jer_extra.push_back(jer);
 	}
     }

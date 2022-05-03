@@ -46,7 +46,7 @@ class TKinFitterDriver : public TObject
   bool Check_Status(){ return results_container.status; }
   Results_Container Get_Results(){ return results_container; }
   void Scan();  
-  void Set_Objects(vector<Jet>& _vec_jet, vector<float>& _vec_resolution_pt, vector<bool>& _vec_btag, Lepton& _lepton, Particle& _met);  
+  void Set_Objects(vector<Jet>& _vec_jet, vector<float>& _vec_resolution_pt, vector<bool>& _vec_btag, Lepton& _lepton, Particle& _met, bool _chk_matched=false, int* _index_matched_jet=NULL);  
   
  protected:  
   int data_year;  
@@ -59,9 +59,14 @@ class TKinFitterDriver : public TObject
   vector<bool> vec_btag;
   Lepton lepton;
   Particle met;
-
+  bool chk_matched;
+  int index_matched_jet[4];
+  
   vector<JET_ASSIGNMENT> vec_permutation;
-  int n_jet, n_btag;  
+  int n_jet;
+  int n_btag;  
+
+  int correct_permutation[4];
   
   //for easy permutation handling 
   TLorentzVector jet_had_t_b, jet_w_u, jet_w_d, jet_lep_t_b, neutrino; 
@@ -123,7 +128,9 @@ class TKinFitterDriver : public TObject
   bool Check_Repetition();
   void Clear();
   bool End_Permutation(){ return next_permutation(vec_permutation.begin(), vec_permutation.end()); }
-  void Find_Best_Permutation(); 
+  void Find_Best_Permutation();
+  bool Included_Matched_Jet(const int& index);
+  void Index_To_Permutation(); 
   bool Pre_Kinematic_Cut(); 
   void Print_Permutation();
   bool Quality_Cut();
