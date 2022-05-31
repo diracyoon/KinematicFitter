@@ -29,99 +29,94 @@ void TKinFitterDriver::Scan()
 
   results_container.Reset();
   
-  Sol_Neutrino_Pz();
-  
-  //loop over neutrino pz solution
-  index_neutrino_sol = 0;
-  while(true)
+  //loop over jet permutation
+  do
     {
-      if(index_neutrino_sol==2) break;
+      Print_Permutation();
       
-      //if neutrino pz solution gives complex, take only real part and consider only one possibility
-      if(!results_container.chk_real_neu_pz && index_neutrino_sol!=0) break;
+      results.Reset();
       
-      Set_Neutrino();
+      //each t quark should contain at least one 
+      // if(!BJet_Assignment_Cut())
+      //   {
+      //     results.cut = CUT_RESULT::B_ASSIGNMENT;
+      //     Save_Permutation(true);
       
-      //loopsd over jet permutation
-      do
+      //     cout << "Cut B Assignment" << endl;
+      
+      //     continue;
+      //   }
+      
+      //check repetition
+      //For KF, permutations within W cadidates are meaningless. So reject these permutation to save time
+      // if(!Check_Repetition())
+      //   {
+      //     results.cut = CUT_RESULT::REPETITION;
+      //     Save_Permutation(true);
+      
+      //     continue;
+      //   }
+      
+      Set_Jets();
+      
+      Rebalance_Met();
+      Sol_Neutrino_Pz();
+      
+      //loop over neutrino permuation
+      int n_neutrino_sol;
+      if(chk_real_neu_pz==true) n_neutrino_sol = 2;
+      else if(chk_real_neu_pz==false) n_neutrino_sol = 1;
+      for(int i=0; i<n_neutrino_sol; ++i)
 	{
-	  Print_Permutation();
-	  
-	  results.Reset();
-	
-	  //each t quark should contain at least one 
-	  if(!BJet_Assignment_Cut())
-            {
-	      results.cut = CUT_RESULT::B_ASSIGNMENT;
-              Save_Permutation(true);
-	      
-	      cout << "Cut B Assignment" << endl;
-	      
-              continue;
-            }
-
-	  //check repetition
-	  //For KF, permutations within W cadidates are meaningless. So reject these permutation to save time
-	  // if(!Check_Repetition())
-	  //   {
-	  //     results.cut = CUT_RESULT::REPETITION;
-	  //     Save_Permutation(true);
-	      
-	  //     continue;
-	  //   }
-	  
-	  Set_Jets();
+	  index_neutrino_sol = i;
+	  cout << "test neutrino pz = " << neutrino_pz_sol[index_neutrino_sol] << endl;
+	  Set_Neutrino(index_neutrino_sol);
 
 	  //very useful to reduce computation time
-	  //
 	  if(!Pre_Kinematic_Cut())
 	    {
-	      results.cut = CUT_RESULT::PRE_KINEMATIC;
-	      Save_Permutation(true);
-	  
-	      cout << "Cut Pre Kin" << endl;
-
-	      continue;
+	      //     results.cut = CUT_RESULT::PRE_KINEMATIC;
+	      //     Save_Permutation(true);
+	      
+	      //     cout << "Cut Pre Kin" << endl;
+	      
+	      //     continue;
 	    }
-
+	  
 	  //contruct TFitConstraint objects
 	  Set_Constraints();
-
+	  
 	  //register things to fitter
 	  Set_Fitter();
-
+	  
 	  //fit
 	  results.status = fitter->fit();
-
+	  
 	  //not sure quality cut is useful at this stage
 	  // if(!Quality_Cut())
           //   {
           //     results.cut = CUT_RESULT::QUALITY;
 	  //     Save_Permutation(true);
-
+	  
 	  //     cout << "Cut Quality cut" << endl;
-	      
+	  
 	  //     float chi2_jet_had_t_b = Calc_Each_Chi2(fit_jet_had_t_b);
 	  //     float chi2_jet_w_u = Calc_Each_Chi2(fit_jet_w_u);
 	  //     float chi2_jet_w_d = Calc_Each_Chi2(fit_jet_w_d);
 	  //     float chi2_jet_lep_t_b = Calc_Each_Chi2(fit_jet_lep_t_b);
 
 	  //     cout << "chi2_jet_had_t_b = " << chi2_jet_had_t_b << ", chi2_jet_w_u = " << chi2_jet_w_u << ", chi2_jet_w_d = " << chi2_jet_w_d << ", chi2_jet_lep_t_b = " << chi2_jet_lep_t_b << endl;
-	      
+	  
           //     continue;
           //   }
-
+	  
 	  results.cut = CUT_RESULT::PASS;
 	  
-	  cout << "chi2 = " << Calc_Chi2() << endl;
-
 	  //Save
  	  Save_Results();
+	}//loop over neutrino pz solution
+    }while(End_Permutation());//loop over jet permutation
 
-  	}while(End_Permutation());//loop over neutrino pz solution
-
-      index_neutrino_sol++;
-    }//loop over neutrino pz solution
   
   //find best permutation
   Find_Best_Permutation();
@@ -164,10 +159,18 @@ void TKinFitterDriver::Set_Objects(vector<Jet>& _vec_jet, vector<float>& _vec_re
       
       for(int i=0; i<4; ++i) index_matched_jet[i] = _index_matched_jet[i];
 
+      int index = 0;
       for(int i=0; i<n_jet; ++i)
         {
-	  if(!Included_Matched_Jet(i)) continue;
-	  
+	  if(!Included_Matched_Jet(i))
+	    {
+	      ++index;
+	      
+	      continue;
+	    }
+	  permutation_to_index[vec_jet.size()] = index;
+	  ++index;
+
 	  vec_jet.push_back(_vec_jet[i]);
 	  vec_resolution_pt.push_back(_vec_resolution_pt[i]);
 	  vec_btag.push_back(_vec_btag[i]);
@@ -389,6 +392,7 @@ void TKinFitterDriver::Find_Best_Permutation()
       results_container.best_fitted_lep_w_mass = results.fitted_lep_w_mass;
     }
   
+  cout << "Best Permutation = " << results_container.best_index_had_t_b << " " << results_container.best_index_w_u << " " << results_container.best_index_w_d << " " << results_container.best_index_lep_t_b << endl;
   //cout << results_container.best_chi2 << " " <<  results_container.best_fitted_had_t_mass << " " <<  results_container.best_fitted_had_w_mass << endl;
   
   return;
@@ -416,7 +420,7 @@ void TKinFitterDriver::Index_To_Permutation()
 
   for(int i=0; i<4; ++i)
     {
-      int index;
+      int index = 0;
       int rank = 0;
       int smallest = 999;
       for(int j=0; j<4; ++j)
@@ -448,52 +452,57 @@ void TKinFitterDriver::Index_To_Permutation()
 
 //////////
 
+int Permutation_To_Index(const int& permutation)
+{ 
+  cout << "Permutation_To_Index" << endl;
+  //vec_permutation
+  int index = 0;
+
+  return index;
+}//void Permutation_To_Index()
+
+//////////
+
 bool TKinFitterDriver::Pre_Kinematic_Cut()
 {
   //convention
   //true: event passes the cut
-  //false: event is cut by the cut
+  //false: event is removed by the cut
   
-  //cout << "test Pre_Kinematic_Cut" << endl;
+  //Very useful to reduce computation time
+  //Not for increase SNR 
+  //Cut 5% of signal for each 
   
-  bool jet_pt_cut = false;
-  if(jet_lep_t_b.Pt()>30) jet_pt_cut = true;//need to be tuned more
-  if(!jet_pt_cut)
-    {
-      cout << "jet_pt_cut" << endl;
-      return false;
-    }
+  //jet pt cut
   
+  //tt delta phi
+  TLorentzVector had_w = jet_w_u + jet_w_d;
   TLorentzVector had_t = jet_had_t_b + jet_w_u + jet_w_d;
   TLorentzVector lep_t = jet_lep_t_b + lepton + neutrino;
-
-  bool tt_angular_cut = TMath::Abs(had_t.DeltaPhi(lep_t))>1.5 ? true : false;
-  if(tt_angular_cut==false)
-    {
-      cout << "tt_angular_cut " << tt_angular_cut << " " << TMath::Abs(had_t.DeltaPhi(lep_t)) << endl;
-      return false;
-    }
-
-  bool had_t_mass_cut = false;
-  double had_t_mass = had_t.M();
-  if(n_jet==4 && 100<had_t_mass && had_t_mass<240) had_t_mass_cut = true;
-  else if(n_jet==5 && 120<had_t_mass && had_t_mass<220) had_t_mass_cut = true;
-  else if(n_jet>=6 && 140<had_t_mass && had_t_mass<200) had_t_mass_cut = true;
-  if(!had_t_mass_cut)
-    {
-      cout << "had_t_mass_cut" << endl;
-      return false;
-    }
   
-  bool lep_t_mass_cut = false;
-  TLorentzVector partial_lep_t = jet_lep_t_b + lepton;
-  if(partial_lep_t.M()<150) lep_t_mass_cut = true;
-  if(!lep_t_mass_cut)
-    {
-      cout << "lep_t_mass_cut" << endl;
-      return false;
-    }
+  float tt_delta_phi = TMath::Abs(had_t.DeltaPhi(lep_t));
+  if(n_jet==4 && tt_delta_phi<1.9) return false; 
+  if(n_jet==5 && tt_delta_phi<0.82) return false;
+  else if(6<=n_jet && tt_delta_phi<0.42) return false;
+
+  //had_t_mass
+  float had_t_mass = had_t.M();
+  if(n_jet==4 && (had_t_mass<132.5 || 270.5<had_t_mass)) return false;
+  else if(n_jet==5 && (had_t_mass<129.5 || 280.5<had_t_mass)) return false;
+  else if(6<=n_jet && (had_t_mass<127.5 || 321.5<had_t_mass)) return false;
   
+  //lep_t_mass
+  float lep_t_mass = lep_t.M();
+  if(n_jet==4 && (lep_t_mass<138.5 || 329.5<lep_t_mass)) return false;
+  else if(n_jet==5 && (lep_t_mass<135.5 || 345.5<lep_t_mass)) return false;
+  else if(6<=n_jet && (lep_t_mass<134.5 || 363.5<lep_t_mass)) return false;
+	     
+  //had_w_mass
+  float had_w_mass = had_w.M();
+  if(n_jet==4 && (had_w_mass<51.5 || 153.5<had_w_mass)) return false;
+  else if(n_jet==5 && (had_w_mass<50.5 || 162.5<had_w_mass)) return false;
+  else if(n_jet<=6 && (had_w_mass<50.5 || 194.5<had_w_mass)) return false;
+   
   return true;
 }//bool TKinFitterDriver::Pre_Kinematic_Cut()
 
@@ -540,22 +549,81 @@ bool TKinFitterDriver::Quality_Cut()
 
 //////////
 
+void TKinFitterDriver::Rebalance_Met()
+{
+  float met_rebalance_px = 0;
+  float met_rebalance_py = 0;
+
+  for(unsigned int i=0; i<vec_jet.size(); ++i)
+    {
+      met_rebalance_px += vec_jet[i].Px();
+      met_rebalance_py += vec_jet[i].Py();
+    }
+
+  //rebalacne met
+  met_rebalance_px -= jet_had_t_b.Px();
+  met_rebalance_py -= jet_had_t_b.Py();
+  
+  met_rebalance_px -= jet_w_u.Px();
+  met_rebalance_py -= jet_w_u.Py();
+
+  met_rebalance_px -= jet_w_d.Px();
+  met_rebalance_py -= jet_w_d.Py();
+
+  met_rebalance_px -= jet_lep_t_b.Px();
+  met_rebalance_py -= jet_lep_t_b.Py();
+
+  for(unsigned int i=0; i<vec_jet_extra.size(); ++i)
+    {
+      met_rebalance_px -= vec_jet_extra[i].Px();
+      met_rebalance_py -= vec_jet_extra[i].Py();
+    }
+
+  met_rebalance_px = met.Px() + met_rebalance_px;
+  met_rebalance_py = met.Py() + met_rebalance_py;
+  
+  met_rebalance.SetPxPyPzE(met_rebalance_px, met_rebalance_py, 0, TMath::Sqrt(met_rebalance_px*met_rebalance_px+met_rebalance_py*met_rebalance_py));
+  
+  cout << "test met_rebal " << met_rebalance_px << " " << met_rebalance_py << endl;
+
+  return;
+}//void TKineFitterDriver::Rebalance_Met()
+
+//////////
+
 void TKinFitterDriver::Save_Permutation(const bool& push)
 {
-  results.index_neutrino_sol = index_neutrino_sol;
   results.vec_permutation = vec_permutation;
   
   for(unsigned int i=0; i<vec_permutation.size(); i++)
     {
       JET_ASSIGNMENT jet_assignment = vec_permutation.at(i);
-      
-      if(jet_assignment==JET_ASSIGNMENT::HAD_T_B) results.index_had_t_b = i;
-      else if(jet_assignment==JET_ASSIGNMENT::W_U) results.index_w_u = i;
-      else if(jet_assignment==JET_ASSIGNMENT::W_D) results.index_w_d = i;
-      else if(jet_assignment==JET_ASSIGNMENT::LEP_T_B) results.index_lep_t_b = i;
-    }
   
+      if(jet_assignment==JET_ASSIGNMENT::HAD_T_B)
+	{
+	  if(chk_matched==true) results.index_had_t_b = permutation_to_index[i];
+	  else results.index_had_t_b = i;
+	}
+      else if(jet_assignment==JET_ASSIGNMENT::W_U)
+	{
+	  if(chk_matched==true) results.index_w_u = permutation_to_index[i];
+	  else results.index_w_u = i;
+	}
+      else if(jet_assignment==JET_ASSIGNMENT::W_D)
+	{
+	  if(chk_matched==true) results.index_w_d = permutation_to_index[i];
+	  else results.index_w_d = i;
+	}
+      else if(jet_assignment==JET_ASSIGNMENT::LEP_T_B)
+	{
+	  if(chk_matched==true) results.index_lep_t_b = permutation_to_index[i];
+	  else results.index_lep_t_b = i;
+	}
+    }
+
   if(push) results_container.vec_results.push_back(results);
+
+  results.index_neutrino_sol = index_neutrino_sol;
 
   return;
 }//void TKinFitterDriver::Save_Permutation()
@@ -566,7 +634,19 @@ void TKinFitterDriver::Save_Results()
 {
   Save_Permutation();
   
+  results.chk_real_neu_pz = chk_real_neu_pz;
+
   //initial objects
+  results.met_px = met.Px();
+  results.met_py = met.Py();
+  
+  results.met_rebalance_px = neutrino_px_init;
+  results.met_rebalance_py = neutrino_py_init;
+  
+  results.neutrino_pz_sol = neutrino_pz_init;
+  
+  results.chk_real_neu_pz = chk_real_neu_pz;
+
   TLorentzVector initial_had_t = jet_had_t_b + jet_w_u + jet_w_d;
   TLorentzVector initial_had_w = jet_w_u + jet_w_d;
   TLorentzVector initial_lep_t = jet_lep_t_b + lepton + neutrino;
@@ -596,6 +676,21 @@ void TKinFitterDriver::Save_Results()
   TLorentzVector fitted_lep_t = fitted_jet_lep_t_b + fitted_lepton + fitted_neutrino;
   TLorentzVector fitted_lep_w = fitted_lepton + fitted_neutrino;
   
+  results.tt_delta_phi = TMath::Abs(initial_had_t.DeltaPhi(initial_lep_t));
+
+  results.chi2_jet_had_t_b = Calc_Each_Chi2(fit_jet_had_t_b);
+  results.chi2_jet_w_u = Calc_Each_Chi2(fit_jet_w_u);
+  results.chi2_jet_w_d = Calc_Each_Chi2(fit_jet_w_d);;
+  results.chi2_jet_lep_t_b = Calc_Each_Chi2(fit_jet_lep_t_b);
+  
+  results.chi2_jet_extra = 0;
+  for(unsigned int i=0; i<vec_fit_jet_extra.size(); i++){ results.chi2_jet_extra += Calc_Each_Chi2(vec_fit_jet_extra.at(i)); }
+  
+  results.chi2_constraint_had_t = Calc_Each_Chi2(constraint_had_t_mgaus, T_MASS, T_WIDTH);
+  results.chi2_constraint_had_w = Calc_Each_Chi2(constraint_had_w_mgaus, W_MASS, W_WIDTH);
+  results.chi2_constraint_lep_t = Calc_Each_Chi2(constraint_lep_t_mgaus, T_MASS, T_WIDTH);
+  results.chi2_constraint_lep_w = Calc_Each_Chi2(constraint_lep_w_mgaus, W_MASS, W_WIDTH);
+
   results.chi2 = Calc_Chi2();
   
   results.initial_had_t_mass = initial_had_t.M();
@@ -607,9 +702,11 @@ void TKinFitterDriver::Save_Results()
   results.fitted_had_w_mass = fitted_had_w.M();
   results.fitted_lep_t_mass = fitted_lep_t.M();
   results.fitted_lep_w_mass = fitted_lep_w.M();
- 
+
   results_container.vec_results.push_back(results);
   
+  cout << "chi2 jet_lep_t_b = " << results.chi2_jet_lep_t_b << ", chi2_jet_extra = " << results.chi2_jet_extra <<  endl; 
+
   return;
 }//void TKinFitterDriver::Save_Results()
 
@@ -872,13 +969,15 @@ void TKinFitterDriver::Set_Lepton()
 
 //////////
 
-void TKinFitterDriver::Set_Neutrino()
+void TKinFitterDriver::Set_Neutrino(const int& index)
 {
-  float px = met.Px();
-  float py = met.Py();
-  float pz = results_container.neutrino_pz_sol[index_neutrino_sol];
+  //float px = met.Px();
+  //float py = met.Py();
+  neutrino_px_init = met_rebalance.Px();
+  neutrino_py_init = met_rebalance.Py();
+  neutrino_pz_init = neutrino_pz_sol[index];
   
-  neutrino.SetPxPyPzE(px, py, pz, TMath::Sqrt(px*px+py*py+pz*pz));
+  neutrino.SetPxPyPzE(neutrino_px_init, neutrino_py_init, neutrino_pz_init, TMath::Sqrt(neutrino_px_init*neutrino_px_init+neutrino_py_init*neutrino_py_init+neutrino_pz_init*neutrino_pz_init));
   
   //construct fitting object
   neutrino_vec3 = neutrino.Vect();
@@ -895,26 +994,35 @@ void TKinFitterDriver::Sol_Neutrino_Pz()
 {
   double lepton_mass =  lepton.M();
   
-  double k = TMath::Power(W_MASS, 2.)/2.0 - lepton_mass*lepton_mass/2.0 + lepton.Px()*met.Px() + lepton.Py()*met.Py();
+  float met_px = met_rebalance.Px();
+  float met_py = met_rebalance.Py();
+  float met_pt = met_rebalance.Pt();
+
+  double k = TMath::Power(W_MASS, 2.)/2.0 - lepton_mass*lepton_mass/2.0 + lepton.Px()*met_px + lepton.Py()*met_py;
   double a = TMath::Power(lepton.Px(), 2.0) + TMath::Power(lepton.Py(), 2.0);
   double b = -2*k*lepton.Pz();
-  double c = TMath::Power(lepton.Pt(), 2.0)*TMath::Power(met.Pt(), 2.0) - TMath::Power(k, 2.0);
+  double c = TMath::Power(lepton.Pt(), 2.0)*TMath::Power(met_pt, 2.0) - TMath::Power(k, 2.0);
 
   double determinant = TMath::Power(b, 2.0) - 4*a*c; 
 
   //real solution
-  if(determinant>=0){
-    results_container.neutrino_pz_sol[0] = (-b + TMath::Sqrt(determinant))/(2*a);
-    results_container.neutrino_pz_sol[1] = (-b - TMath::Sqrt(determinant))/(2*a);
-    
-    results_container.chk_real_neu_pz = true;
-  }
+  if(determinant>=0)
+    {
+      neutrino_pz_sol[0] = (-b + TMath::Sqrt(determinant))/(2*a);
+      neutrino_pz_sol[1] = (-b - TMath::Sqrt(determinant))/(2*a);
+      
+      chk_real_neu_pz = true;
+      cout << "Neu Real sol = " << neutrino_pz_sol[0] << " " << neutrino_pz_sol[1] << endl;
+    }
   //complex solution
-  else{
-    results_container.neutrino_pz_sol[0] = -b/(2*a);
-    //Resol_Neutrino_Pt();
-    results_container.chk_real_neu_pz = false;
-  }
+  else
+    {
+      neutrino_pz_sol[0] = -b/(2*a);
+      //Resol_Neutrino_Pt();
+      chk_real_neu_pz = false;
+    
+      cout << "Neu Im sol = " << neutrino_pz_sol[0] << endl;
+    }
   
   return;
 }//void TKinFitterDriver::Sol_Neutrino_Pz()

@@ -15,10 +15,10 @@ class Results_Container : public TObject
   {
     status = false;
 
-    neutrino_pz_sol[0] = 99999;
-    neutrino_pz_sol[0] = 99999;
-    chk_real_neu_pz = false;
-   
+    best_neutrino_px = 99999;
+    best_neutrino_py = 99999;
+    best_neutrino_pz = 99999;
+    
     best_chi2 = 99999;
 
     best_index_had_t_b = -1;
@@ -41,11 +41,12 @@ class Results_Container : public TObject
     
     return;
   }//void Reset
-
-  float neutrino_pz_sol[2];
-  bool chk_real_neu_pz;
-  
+   
   bool status;
+
+  float best_neutrino_px;
+  float best_neutrino_py;
+  float best_neutrino_pz;
 
   float best_chi2;
   

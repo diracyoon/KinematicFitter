@@ -29,11 +29,7 @@
 #include "Enum_Def.h"
 #include "Results_Container.h"
 #include "Results.h"
-
-#define T_MASS 172.5
-#define T_WIDTH 1.5
-#define W_MASS 80.379
-#define W_WIDTH 2.085
+#include "../../../Analyzers/include/Vcb_Def.h"
 
 using namespace std;
 
@@ -52,21 +48,31 @@ class TKinFitterDriver : public TObject
   int data_year;  
   bool rm_wm_constraint;
   
-  int index_neutrino_sol;
-
   vector<Jet> vec_jet;  
   vector<float> vec_resolution_pt;
   vector<bool> vec_btag;
   Lepton lepton;
   Particle met;
+  Particle met_rebalance;
+  
   bool chk_matched;
   int index_matched_jet[4];
-  
+  int permutation_to_index[4];
+
   vector<JET_ASSIGNMENT> vec_permutation;
   int n_jet;
   int n_btag;  
 
   int correct_permutation[4];
+  
+  float neutrino_pz_sol[2];
+  bool chk_real_neu_pz;
+
+  int index_neutrino_sol;
+  
+  float neutrino_px_init;
+  float neutrino_py_init;
+  float neutrino_pz_init;
   
   //for easy permutation handling 
   TLorentzVector jet_had_t_b, jet_w_u, jet_w_d, jet_lep_t_b, neutrino; 
@@ -131,9 +137,11 @@ class TKinFitterDriver : public TObject
   void Find_Best_Permutation();
   bool Included_Matched_Jet(const int& index);
   void Index_To_Permutation(); 
+  int Permutation_To_Index(const int& permuation);
   bool Pre_Kinematic_Cut(); 
   void Print_Permutation();
   bool Quality_Cut();
+  void Rebalance_Met();
   void Resol_Neutrino_Pz(){};//not used currently 
   void Save_Permutation(const bool& push=false);
   void Save_Results();
@@ -141,7 +149,7 @@ class TKinFitterDriver : public TObject
   void Set_Fitter();
   void Set_Jets();  
   void Set_Lepton(); 
-  void Set_Neutrino(); 
+  void Set_Neutrino(const int& index); 
   void Sol_Neutrino_Pz(); 
 
   ClassDef(TKinFitterDriver, 1);
