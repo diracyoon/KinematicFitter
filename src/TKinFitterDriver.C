@@ -18,7 +18,35 @@ TKinFitterDriver::TKinFitterDriver(int _data_year, bool _rm_wm_constraint)
   fitter->setVerbosity(3);
   //fitter->setVerbosity(1);
   
+  reader = new TMVA::Reader("!Color:!Silent");
+  reader->AddSpectator("n_jets", &n_jet);
+  reader->AddVariable("had_t_b_pt", &had_t_b_pt);
+  reader->AddVariable("w_u_pt", &w_u_pt);
+  reader->AddVariable("w_d_pt", &w_d_pt);
+  reader->AddVariable("lep_t_b_pt", &lep_t_b_pt);
+  reader->AddVariable("theta_w_u_w_d", &theta_w_u_w_d);
+  reader->AddVariable("theta_had_w_had_t_b", &theta_had_w_had_t_b);
+  reader->AddVariable("theta_lep_neu", &theta_lep_neu);
+  reader->AddVariable("theta_lep_w_lep_t_b", &theta_lep_w_lep_t_b);
+  reader->AddVariable("del_phi_had_t_lep_t", &del_phi_had_t_lep_t);
+  reader->AddVariable("had_t_mass", &had_t_mass);
+  reader->AddVariable("had_w_mass", &had_w_mass);
+  reader->AddVariable("lep_t_mass", &lep_t_mass);
+  reader->AddVariable("lep_t_partial_mass", &lep_t_partial_mass);
+  reader->AddVariable("chi2", &chi2);
   
+  
+  TString weight_file_base = getenv("SKFlat_WD");
+  weight_file_base += "/external/KinematicFitter/data";
+  
+  TString weight_file = weight_file_base + "/4Jets/TMVAClassification_BDT.weights.xml"; 
+  reader->BookMVA("BDT_4Jets", weight_file);
+
+  weight_file = weight_file_base + "/5Jets/TMVAClassification_BDT.weights.xml";
+  reader->BookMVA("BDT_5Jets", weight_file);
+
+  weight_file = weight_file_base + "/6Jets/TMVAClassification_BDT.weights.xml";
+  reader->BookMVA("BDT_6Jets", weight_file);
 }//TKinFitterDriver::TKinFitterDriver(int _DataYear)
 
 //////////
@@ -355,26 +383,82 @@ bool TKinFitterDriver::Check_Repetition()
 
 void TKinFitterDriver::Find_Best_Permutation()
 {
-  const float chi2_max = 99999;
-  float chi2_best = chi2_max;
-  int i_best = 0;
-  for(unsigned int i=0; i<results_container.vec_results.size(); i++)
-    {
-      Results results = results_container.vec_results.at(i);
-           
-      if(results.chi2<chi2_best && results.cut==CUT_RESULT::PASS)
-	{
-	  i_best = i;
-	  chi2_best = results.chi2;
-	}
-    }
+  bool chk_mva = true;
   
-  if(chi2_best<0.99*chi2_max)//In case KF couldn't find any conserved permutation. 0.99 is arbitary number to avoid ambiguity of float comparison
+  int i_best = -1;
+  
+  //using MVA
+  if(chk_mva)
+    {
+      float mva_score_best = -999; 
+      
+      for(unsigned int i=0; i<results_container.vec_results.size(); ++i)
+	{
+	  Results results = results_container.vec_results.at(i);
+	  
+	  if(results.cut!=CUT_RESULT::PASS) continue;
+	  
+	  had_t_b_pt = vec_jet[results.index_had_t_b].Pt();
+	  w_u_pt = vec_jet[results.index_w_u].Pt();
+	  w_d_pt = vec_jet[results.index_w_d].Pt();
+	  lep_t_b_pt = vec_jet[results.index_lep_t_b].Pt();
+	  
+	  theta_w_u_w_d = results.theta_w_u_w_d;
+	  theta_had_w_had_t_b = results.theta_had_w_had_t_b;
+	  theta_lep_neu = results.theta_lep_neu;
+	  theta_lep_w_lep_t_b = results.theta_lep_w_lep_t_b;
+	  del_phi_had_t_lep_t = results.del_phi_had_t_lep_t;
+	  
+	  had_t_mass = results.initial_had_t_mass;
+	  had_w_mass = results.initial_had_w_mass;
+	  lep_t_mass = results.initial_lep_t_mass;
+	  lep_t_partial_mass = results.initial_lep_t_partial_mass;
+
+	  chi2 = results.chi2;
+
+	  cout << had_t_b_pt << " " << w_u_pt << " " << w_d_pt << " " << lep_t_b_pt << " " << theta_w_u_w_d << " " << theta_had_w_had_t_b << " " << theta_lep_neu << " " << theta_lep_w_lep_t_b << " " << del_phi_had_t_lep_t << " " << had_t_mass << " " << had_w_mass << " " << lep_t_mass << " " << lep_t_partial_mass << " " << chi2 << endl; 
+	  float mva_score;
+	  if(n_jet==4) mva_score = reader->EvaluateMVA("BDT_4Jets");
+	  else if(n_jet==5) mva_score = reader->EvaluateMVA("BDT_5Jets");
+	  else mva_score = reader->EvaluateMVA("BDT_6Jets");
+	  
+	  results.mva_score = mva_score;
+
+	  if(mva_score_best<mva_score)
+	    {
+	      mva_score_best = mva_score; 
+	      i_best = i;
+	    }
+
+	  cout << "test find_best_permutation " << i << " " << results.index_had_t_b << " " << results.index_w_u << " " << results.index_w_d << " " << results.index_lep_t_b << ") " << mva_score << " " << mva_score_best << " " << i_best << endl;
+	}
+    }//using MVA
+  
+  //using simple chi2 minimization
+  else
+    {
+      float chi2_best = 99999;
+      
+      for(unsigned int i=0; i<results_container.vec_results.size(); i++)
+	{
+	  Results results = results_container.vec_results.at(i);
+           
+	  if(results.chi2<chi2_best && results.cut==CUT_RESULT::PASS)
+	    {
+	      i_best = i;
+	      chi2_best = results.chi2;
+	    }
+	}
+    }//using simple chi2 minimization
+      
+      
+  if(i_best!=-1)
     {
       results_container.status = true;
-      results_container.best_chi2 = chi2_best;
-      
+            
       Results results = results_container.vec_results.at(i_best);
+      
+      results_container.best_chi2 = results.chi2;
       
       results_container.best_index_had_t_b = results.index_had_t_b;
       results_container.best_index_w_u = results.index_w_u;
@@ -480,10 +564,10 @@ bool TKinFitterDriver::Pre_Kinematic_Cut()
   TLorentzVector had_t = jet_had_t_b + jet_w_u + jet_w_d;
   TLorentzVector lep_t = jet_lep_t_b + lepton + neutrino;
   
-  float tt_delta_phi = TMath::Abs(had_t.DeltaPhi(lep_t));
-  if(n_jet==4 && tt_delta_phi<1.9) return false; 
-  if(n_jet==5 && tt_delta_phi<0.82) return false;
-  else if(6<=n_jet && tt_delta_phi<0.42) return false;
+  float del_phi_had_t_lep_t = TMath::Abs(had_t.DeltaPhi(lep_t));
+  if(n_jet==4 && del_phi_had_t_lep_t<1.9) return false; 
+  if(n_jet==5 && del_phi_had_t_lep_t<0.82) return false;
+  else if(6<=n_jet && del_phi_had_t_lep_t<0.42) return false;
 
   //had_t_mass
   float had_t_mass = had_t.M();
@@ -652,6 +736,30 @@ void TKinFitterDriver::Save_Results()
   TLorentzVector initial_lep_t = jet_lep_t_b + lepton + neutrino;
   TLorentzVector initial_lep_w = lepton + neutrino;
 
+  results.del_phi_w_u_w_d = TMath::Abs(jet_w_u.DeltaPhi(jet_w_d));
+  results.del_phi_had_w_had_t_b = TMath::Abs(initial_had_w.DeltaPhi(jet_had_t_b));
+  results.del_phi_lep_neu = TMath::Abs(lepton.DeltaPhi(neutrino));
+  results.del_phi_lep_w_lep_t_b = TMath::Abs(initial_lep_w.DeltaPhi(jet_lep_t_b));
+  results.del_phi_had_t_lep_t = TMath::Abs(initial_had_t.DeltaPhi(initial_lep_t));
+
+  results.del_eta_w_u_w_d = TMath::Abs(jet_w_u.Eta()-jet_w_d.Eta());
+  results.del_eta_had_w_had_t_b = TMath::Abs(initial_had_w.Eta()-jet_had_t_b.Eta());
+  results.del_eta_lep_neu = TMath::Abs(lepton.Eta()-neutrino.Eta());
+  results.del_eta_lep_w_lep_t_b = TMath::Abs(initial_lep_w.Eta()-jet_lep_t_b.Eta());
+  results.del_eta_had_t_lep_t = TMath::Abs(initial_had_t.Eta()-initial_lep_t.Eta());
+
+  results.del_r_w_u_w_d = jet_w_u.DeltaR(jet_w_d);
+  results.del_r_had_w_had_t_b = initial_had_w.DeltaR(jet_had_t_b);
+  results.del_r_lep_neu = lepton.DeltaR(neutrino);
+  results.del_r_lep_w_lep_t_b = initial_lep_w.DeltaR(jet_lep_t_b);
+  results.del_r_had_t_lep_t = initial_had_t.DeltaR(initial_lep_t);
+  
+  results.theta_w_u_w_d = jet_w_u.Angle(jet_w_d.Vect());
+  results.theta_had_w_had_t_b = initial_had_w.Angle(jet_had_t_b.Vect());
+  results.theta_lep_neu = lepton.Angle(neutrino.Vect());
+  results.theta_lep_w_lep_t_b = initial_lep_w.Angle(jet_lep_t_b.Vect());
+  results.theta_had_t_lep_t = initial_had_t.Angle(initial_lep_t.Vect());
+  
   //construct fitted objects
   const TLorentzVector* tmp = fit_jet_had_t_b->getCurr4Vec();
   TLorentzVector fitted_jet_had_t_b(tmp->Px(), tmp->Py(), tmp->Pz(), tmp->E());
@@ -676,8 +784,6 @@ void TKinFitterDriver::Save_Results()
   TLorentzVector fitted_lep_t = fitted_jet_lep_t_b + fitted_lepton + fitted_neutrino;
   TLorentzVector fitted_lep_w = fitted_lepton + fitted_neutrino;
   
-  results.tt_delta_phi = TMath::Abs(initial_had_t.DeltaPhi(initial_lep_t));
-
   results.chi2_jet_had_t_b = Calc_Each_Chi2(fit_jet_had_t_b);
   results.chi2_jet_w_u = Calc_Each_Chi2(fit_jet_w_u);
   results.chi2_jet_w_d = Calc_Each_Chi2(fit_jet_w_d);;
@@ -696,6 +802,7 @@ void TKinFitterDriver::Save_Results()
   results.initial_had_t_mass = initial_had_t.M();
   results.initial_had_w_mass = initial_had_w.M();
   results.initial_lep_t_mass = initial_lep_t.M();
+  results.initial_lep_t_partial_mass = (jet_lep_t_b + lepton).M();
   results.initial_lep_w_mass = initial_lep_w.M();
 
   results.fitted_had_t_mass = fitted_had_t.M();

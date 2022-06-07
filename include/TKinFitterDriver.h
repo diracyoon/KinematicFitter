@@ -2,6 +2,7 @@
 #define TKinFitterDriver_h
 
 #include <TObject.h>
+#include <TMVA/Reader.h>
 
 #include "Jet.h"
 #include "Lepton.h"
@@ -126,6 +127,22 @@ class TKinFitterDriver : public TObject
 
   Results results;
   Results_Container results_container;
+
+  TMVA::Reader* reader; 
+  float had_t_b_pt;
+  float w_u_pt;
+  float w_d_pt;
+  float lep_t_b_pt;
+  float theta_w_u_w_d;
+  float theta_had_w_had_t_b;
+  float theta_lep_neu;
+  float theta_lep_w_lep_t_b;
+  float del_phi_had_t_lep_t;
+  float had_t_mass;
+  float had_w_mass;
+  float lep_t_mass;
+  float lep_t_partial_mass;
+  float chi2;
 
   bool BJet_Assignment_Cut(); 
   float Calc_Chi2();
