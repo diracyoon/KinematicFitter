@@ -19,7 +19,15 @@ class Results_Container : public TObject
     best_neutrino_py = 99999;
     best_neutrino_pz = 99999;
     
+    best_del_phi_had_t_lep_t = 99999;
+
+    best_theta_w_u_w_d = 99999;
+    best_theta_had_w_had_t_b = 99999;
+    best_theta_lep_neu = 99999;
+    best_theta_lep_w_lep_t_b = 99999;
+
     best_chi2 = 99999;
+    best_mva_score = 99999;
 
     best_index_had_t_b = -1;
     best_index_w_u = -1;
@@ -29,6 +37,7 @@ class Results_Container : public TObject
     best_initial_had_t_mass = 99999;
     best_initial_had_w_mass = 99999;
     best_initial_lep_t_mass = 99999;
+    best_initial_lep_t_partial_mass = 99999;
     best_initial_lep_w_mass = 99999;
     
     best_fitted_had_t_mass = 99999;
@@ -48,7 +57,15 @@ class Results_Container : public TObject
   float best_neutrino_py;
   float best_neutrino_pz;
 
+  float best_del_phi_had_t_lep_t;
+
+  float best_theta_w_u_w_d;
+  float best_theta_had_w_had_t_b;
+  float best_theta_lep_neu;
+  float best_theta_lep_w_lep_t_b;
+
   float best_chi2;
+  float best_mva_score;
   
   int best_index_had_t_b;
   int best_index_w_u;
@@ -58,6 +75,7 @@ class Results_Container : public TObject
   float best_initial_had_t_mass;
   float best_initial_had_w_mass;
   float best_initial_lep_t_mass;
+  float best_initial_lep_t_partial_mass;
   float best_initial_lep_w_mass;
 
   float best_fitted_had_t_mass;

@@ -3,6 +3,9 @@
 
 #include <TObject.h>
 #include <TMVA/Reader.h>
+#include <TError.h>
+#include <TFile.h>
+#include <TH1D.h>
 
 #include "Jet.h"
 #include "Lepton.h"
@@ -21,8 +24,8 @@
 #include "PhysicsTools/KinFitter/interface/TFitParticleMCCart.h"
 #include "PhysicsTools/KinFitter/interface/TFitConstraintMGaus.h"
 
-#include "PhysicsTools/KinFitter/interface/TKinFitter.h"
-//#include "TKinFitter_mod.h"
+//#include "PhysicsTools/KinFitter/interface/TKinFitter.h"
+#include "TKinFitter_Mod.h"
 
 //Redefined by B. Oh
 #include "TFitParticlePt.h"
@@ -38,7 +41,7 @@ class TKinFitterDriver : public TObject
 {
  public:
   TKinFitterDriver(){};
-  TKinFitterDriver(int _data_year, bool _rm_wm_constraint=false); 
+  TKinFitterDriver(int _data_year, bool _run_permutatation_tree=false, bool _run_chi2=false, bool _rm_wm_constraint=false, bool _rm_bjet_energy_reg_nn=false); 
   
   bool Check_Status(){ return results_container.status; }
   Results_Container Get_Results(){ return results_container; }
@@ -47,6 +50,10 @@ class TKinFitterDriver : public TObject
   
  protected:  
   int data_year;  
+  
+  bool run_permutation_tree;
+  bool bjet_energy_reg_nn;
+  bool run_chi2;
   bool rm_wm_constraint;
   
   vector<Jet> vec_jet;  
@@ -122,17 +129,38 @@ class TKinFitterDriver : public TObject
   unique_ptr<TFitConstraintEp> u_ptr_constraint_px;
   unique_ptr<TFitConstraintEp> u_ptr_constraint_py;
 
-  TKinFitter* fitter;
-  unique_ptr<TKinFitter> u_ptr_fitter;
+  //TKinFitter* fitter;
+  //unique_ptr<TKinFitter> u_ptr_fitter;
+  TKinFitter_Mod* fitter;
+  unique_ptr<TKinFitter_Mod> u_ptr_fitter;
 
   Results results;
   Results_Container results_container;
 
-  TMVA::Reader* reader; 
+  TMVA::Reader* reader_permutation[2]; 
+  TMVA::Reader* reader_pre_kin;
+
   float had_t_b_pt;
   float w_u_pt;
   float w_d_pt;
   float lep_t_b_pt;
+  
+  float bvsc_had_t_b;
+  float cvsb_had_t_b;
+  float cvsl_had_t_b;
+  
+  float bvsc_w_u;
+  float cvsb_w_u;
+  float cvsl_w_u;
+
+  float bvsc_w_d;
+  float cvsb_w_d;
+  float cvsl_w_d;
+
+  float bvsc_lep_t_b;
+  float cvsb_lep_t_b;
+  float cvsl_lep_t_b;
+  
   float theta_w_u_w_d;
   float theta_had_w_had_t_b;
   float theta_lep_neu;
@@ -142,7 +170,18 @@ class TKinFitterDriver : public TObject
   float had_w_mass;
   float lep_t_mass;
   float lep_t_partial_mass;
+  float chi2_jet_had_t_b;
+  float chi2_jet_w_u;
+  float chi2_jet_w_d;
+  float chi2_jet_lep_t_b;
+  float chi2_jet_extra;
+  float chi2_constraint_had_t;
+  float chi2_constraint_had_w;
+  float chi2_constraint_lep_t;
+  float chi2_constraint_lep_w;
   float chi2;
+
+  float pre_kin_mva_score[3];
 
   bool BJet_Assignment_Cut(); 
   float Calc_Chi2();
@@ -151,11 +190,14 @@ class TKinFitterDriver : public TObject
   bool Check_Repetition();
   void Clear();
   bool End_Permutation(){ return next_permutation(vec_permutation.begin(), vec_permutation.end()); }
+  float Get_CvsB(const Jet& jet);
+  float Get_CvsL(const Jet& jet);
+  float Get_Pre_Kin_MVA_Score(const TString& fin_path);
   void Find_Best_Permutation();
   bool Included_Matched_Jet(const int& index);
   void Index_To_Permutation(); 
   int Permutation_To_Index(const int& permuation);
-  bool Pre_Kinematic_Cut(); 
+  bool Pre_Kinematic_Cut();
   void Print_Permutation();
   bool Quality_Cut();
   void Rebalance_Met();
