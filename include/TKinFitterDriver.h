@@ -140,10 +140,10 @@ class TKinFitterDriver : public TObject
   TMVA::Reader* reader_permutation[2]; 
   TMVA::Reader* reader_pre_kin;
 
-  float had_t_b_pt;
-  float w_u_pt;
-  float w_d_pt;
-  float lep_t_b_pt;
+  float pt_had_t_b;
+  float pt_w_u;
+  float pt_w_d;
+  float pt_lep_t_b;
   
   float bvsc_had_t_b;
   float cvsb_had_t_b;
@@ -181,7 +181,7 @@ class TKinFitterDriver : public TObject
   float chi2_constraint_lep_w;
   float chi2;
 
-  float pre_kin_mva_score[3];
+  float pre_kin_mva_score[4];
 
   bool BJet_Assignment_Cut(); 
   float Calc_Chi2();
@@ -190,8 +190,6 @@ class TKinFitterDriver : public TObject
   bool Check_Repetition();
   void Clear();
   bool End_Permutation(){ return next_permutation(vec_permutation.begin(), vec_permutation.end()); }
-  float Get_CvsB(const Jet& jet);
-  float Get_CvsL(const Jet& jet);
   float Get_Pre_Kin_MVA_Score(const TString& fin_path);
   void Find_Best_Permutation();
   bool Included_Matched_Jet(const int& index);

@@ -27,6 +27,19 @@ class Results_Container : public TObject
     best_theta_lep_w_lep_t_b = 99999;
 
     best_chi2 = 99999;
+    
+    best_chi2_jet_had_t_b = 99999;
+    best_chi2_jet_w_u = 99999;
+    best_chi2_jet_w_d = 99999;
+    best_chi2_jet_lep_t_b = 99999;
+    
+    best_chi2_jet_extra = 99999;
+
+    best_chi2_constraint_had_t = 99999;
+    best_chi2_constraint_had_w = 99999;
+    best_chi2_constraint_lep_t = 99999;
+    best_chi2_constraint_lep_w = 99999;
+    
     best_mva_score = 99999;
 
     best_index_had_t_b = -1;
@@ -65,6 +78,19 @@ class Results_Container : public TObject
   float best_theta_lep_w_lep_t_b;
 
   float best_chi2;
+  
+  float best_chi2_jet_had_t_b;
+  float best_chi2_jet_w_u;
+  float best_chi2_jet_w_d;
+  float best_chi2_jet_lep_t_b;
+  
+  float best_chi2_jet_extra;
+
+  float best_chi2_constraint_had_t;
+  float best_chi2_constraint_had_w;
+  float best_chi2_constraint_lep_t;
+  float best_chi2_constraint_lep_w;
+
   float best_mva_score;
   
   int best_index_had_t_b;
