@@ -206,21 +206,21 @@ void TKinFitterDriver::Scan()
 	  if(run_chi2)
 	    {
 	      if(!Quality_Cut())
-	   	{
-	   	  results.cut = CUT_RESULT::QUALITY;
-	   	  Save_Permutation(true);
+	      	{
+	      	  results.cut = CUT_RESULT::QUALITY;
+	      	  Save_Permutation(true);
 	  
-	  	  //     cout << "Cut Quality cut" << endl;
+	      	  //     cout << "Cut Quality cut" << endl;
 		  
-	  	  //     float chi2_jet_had_t_b = Calc_Each_Chi2(fit_jet_had_t_b);
-	  	  //     float chi2_jet_w_u = Calc_Each_Chi2(fit_jet_w_u);
-	  	  //     float chi2_jet_w_d = Calc_Each_Chi2(fit_jet_w_d);
-	  	  //     float chi2_jet_lep_t_b = Calc_Each_Chi2(fit_jet_lep_t_b);
+	      	  //     float chi2_jet_had_t_b = Calc_Each_Chi2(fit_jet_had_t_b);
+	      	  //     float chi2_jet_w_u = Calc_Each_Chi2(fit_jet_w_u);
+	      	  //     float chi2_jet_w_d = Calc_Each_Chi2(fit_jet_w_d);
+	      	  //     float chi2_jet_lep_t_b = Calc_Each_Chi2(fit_jet_lep_t_b);
 		  
-	  	  //     cout << "chi2_jet_had_t_b = " << chi2_jet_had_t_b << ", chi2_jet_w_u = " << chi2_jet_w_u << ", chi2_jet_w_d = " << chi2_jet_w_d << ", chi2_jet_lep_t_b = " << chi2_jet_lep_t_b << endl;
+	      	  //     cout << "chi2_jet_had_t_b = " << chi2_jet_had_t_b << ", chi2_jet_w_u = " << chi2_jet_w_u << ", chi2_jet_w_d = " << chi2_jet_w_d << ", chi2_jet_lep_t_b = " << chi2_jet_lep_t_b << endl;
 	  
-	   	  continue;
-		}
+	      	  continue;
+	      	}
 	    }
 	  
 	  results.cut = CUT_RESULT::PASS;
