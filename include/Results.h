@@ -101,6 +101,16 @@ public:
 
   vector<JET_ASSIGNMENT> vec_permutation;
 
+  float pt_had_t_b;
+  float pt_w_u;
+  float pt_w_d;
+  float pt_lep_t_b;
+
+  float eta_had_t_b;
+  float eta_w_u;
+  float eta_w_d;
+  float eta_lep_t_b;
+
   float del_phi_w_u_w_d;
   float del_phi_had_w_had_t_b;
   float del_phi_lep_neu;
