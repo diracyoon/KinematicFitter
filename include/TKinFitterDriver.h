@@ -143,6 +143,8 @@ protected:
   TMVA::Reader *reader_pre_kin;
 
   float met_pt;
+  float neutrino_p;
+  float lepton_pt;
   float pt_ratio;
 
   float pt_had_t_b;

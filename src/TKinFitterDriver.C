@@ -39,6 +39,8 @@ TKinFitterDriver::TKinFitterDriver(const TString &_data_era, const TString &_cha
 
       reader_permutation[i]->AddSpectator("n_jets", &n_jet);
       reader_permutation[i]->AddVariable("met_pt", &met_pt);
+      reader_permutation[i]->AddVariable("neutrino_p", &neutrino_p);
+      reader_permutation[i]->AddVariable("lepton_pt", &lepton_pt);
       reader_permutation[i]->AddVariable("pt_ratio", &pt_ratio);
       reader_permutation[i]->AddVariable("pt_had_t_b", &pt_had_t_b);
       reader_permutation[i]->AddVariable("pt_w_u", &pt_w_u);
@@ -101,6 +103,8 @@ TKinFitterDriver::TKinFitterDriver(const TString &_data_era, const TString &_cha
 
     reader_pre_kin->AddSpectator("n_jets", &n_jet);
     reader_pre_kin->AddVariable("met_pt", &met_pt);
+    reader_pre_kin->AddVariable("neutrino_p", &neutrino_p);
+    reader_pre_kin->AddVariable("lepton_pt", &lepton_pt);
     reader_pre_kin->AddVariable("pt_ratio", &pt_ratio);
     reader_pre_kin->AddVariable("pt_had_t_b", &pt_had_t_b);
     reader_pre_kin->AddVariable("pt_w_u", &pt_w_u);
@@ -194,7 +198,6 @@ void TKinFitterDriver::Scan()
     //   }
 
     Set_Jets();
-
     Rebalance_Met();
     Sol_Neutrino_Pz();
 
@@ -284,9 +287,6 @@ void TKinFitterDriver::Set_Objects(vector<Jet> &_vec_jet, vector<float> &_vec_re
 
   chk_matched = _chk_matched;
 
-  met_pt = met.Pt();
-  pt_ratio = lepton.Pt() / met.Pt();
-
   n_jet = vec_jet.size();
   int n_vec_resolution_pt = vec_resolution_pt.size();
   int n_vec_btag = vec_btag.size();
@@ -302,7 +302,6 @@ void TKinFitterDriver::Set_Objects(vector<Jet> &_vec_jet, vector<float> &_vec_re
   // Using only matched four jets
   if (chk_matched == true)
   {
-    cout << "test 111" << endl;
     vec_jet.clear();
     vec_resolution_pt.clear();
     vec_btag.clear();
@@ -523,7 +522,7 @@ void TKinFitterDriver::Clear()
 float TKinFitterDriver::Get_Pre_Kin_MVA_Score(const TString &fin_path)
 {
   float pre_kin_mva_cut = 1;
-  const float eff_s_cut = 0.80;
+  const float eff_s_cut = 0.90;
 
   TFile fin(fin_path);
 
@@ -568,10 +567,15 @@ void TKinFitterDriver::Find_Best_Permutation()
       if (results.cut != CUT_RESULT::PASS)
         continue;
 
-      pt_had_t_b = vec_jet[results.index_had_t_b].Pt();
-      pt_w_u = vec_jet[results.index_w_u].Pt();
-      pt_w_d = vec_jet[results.index_w_d].Pt();
-      pt_lep_t_b = vec_jet[results.index_lep_t_b].Pt();
+      met_pt = TMath::Sqrt(results.met_rebalance_px * results.met_rebalance_px + results.met_rebalance_py * results.met_rebalance_py);
+      neutrino_p = TMath::Sqrt(met_pt * met_pt + results.neutrino_pz_sol * results.neutrino_pz_sol);
+      lepton_pt = lepton.Pt();
+      pt_ratio = lepton_pt / met_pt;
+
+      pt_had_t_b = results.pt_had_t_b;
+      pt_w_u = results.pt_w_u;
+      pt_w_d = results.pt_w_d;
+      pt_lep_t_b = results.pt_lep_t_b;
 
       bvsc_had_t_b = vec_jet[results.index_had_t_b].GetTaggerResult(JetTagging::DeepJet);
       cvsb_had_t_b = vec_jet[results.index_had_t_b].GetTaggerResult(JetTagging::DeepJet_CvsB);
@@ -681,6 +685,11 @@ void TKinFitterDriver::Find_Best_Permutation()
     results_container.best_index_w_d = results.index_w_d;
     results_container.best_index_lep_t_b = results.index_lep_t_b;
 
+    results_container.best_pt_had_t_b = results.pt_had_t_b;
+    results_container.best_pt_w_u = results.pt_w_u;
+    results_container.best_pt_w_d = results.pt_w_d;
+    results_container.best_pt_lep_t_b = results.pt_lep_t_b;
+
     results_container.best_del_phi_had_t_lep_t = results.del_phi_had_t_lep_t;
 
     results_container.best_theta_w_u_w_d = results.theta_w_u_w_d;
@@ -782,6 +791,11 @@ bool TKinFitterDriver::Pre_Kinematic_Cut()
 
   if (!run_chi2)
   {
+    met_pt = neutrino.Pt();
+    neutrino_p = neutrino.Vect().Mag();
+    lepton_pt = lepton.Pt();
+    pt_ratio = lepton_pt / met_pt;
+
     pt_had_t_b = jet_had_t_b.Pt();
     pt_w_u = jet_w_u.Pt();
     pt_w_d = jet_w_d.Pt();
@@ -1057,7 +1071,6 @@ void TKinFitterDriver::Save_Results()
 
   results.met_rebalance_px = neutrino_px_init;
   results.met_rebalance_py = neutrino_py_init;
-
   results.neutrino_pz_sol = neutrino_pz_init;
 
   results.chk_real_neu_pz = chk_real_neu_pz;
