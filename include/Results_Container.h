@@ -40,6 +40,7 @@ public:
     best_chi2_constraint_lep_t = 99999;
     best_chi2_constraint_lep_w = 99999;
 
+    best_mva_score_pre = 99999;
     best_mva_score = 99999;
 
     best_index_had_t_b = -1;
@@ -96,6 +97,7 @@ public:
   float best_chi2_constraint_lep_t;
   float best_chi2_constraint_lep_w;
 
+  float best_mva_score_pre;
   float best_mva_score;
 
   int best_index_had_t_b;
@@ -118,6 +120,8 @@ public:
   float best_fitted_had_w_mass;
   float best_fitted_lep_t_mass;
   float best_fitted_lep_w_mass;
+
+  int swapped_mva;
 
   vector<Results> vec_results;
 

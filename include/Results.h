@@ -3,6 +3,8 @@
 
 #include <TObject.h>
 
+#include <Enum_Def.h>
+
 class TKinFitterDriver;
 
 class Results : public TObject
@@ -79,7 +81,13 @@ public:
     fitted_lep_t_mass = 99999.;
     fitted_lep_w_mass = 99999.;
 
+    had_w_charge_abs = 99999.;
+    had_t_charge_abs = 99999.;
+    lep_t_charge_abs = 99999.;
+    tt_charge = 99999.;
+
     mva_score = 99999.;
+    mva_score_pre_kin = 99999;
   } // void Reset()
 
   int status;
@@ -160,7 +168,13 @@ public:
   float fitted_lep_t_mass;
   float fitted_lep_w_mass;
 
+  float had_w_charge_abs;
+  float had_t_charge_abs;
+  float lep_t_charge_abs;
+  float tt_charge;
+
   float mva_score;
+  float mva_score_pre_kin;
 
   ClassDef(Results, 1);
 };

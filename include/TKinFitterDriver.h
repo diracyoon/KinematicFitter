@@ -53,6 +53,9 @@ protected:
   TString data_era;
   TString channel;
 
+  bool chk_bvsc_only = false;
+  bool chk_two_step_reco = true;
+
   bool run_permutation_tree;
   bool bjet_energy_reg_nn;
   bool run_chi2;
@@ -85,8 +88,8 @@ protected:
   float neutrino_pz_init;
 
   // for easy permutation handling
-  TLorentzVector jet_had_t_b, jet_w_u, jet_w_d, jet_lep_t_b, neutrino;
-  vector<TLorentzVector> vec_jet_extra;
+  Jet jet_had_t_b, jet_w_u, jet_w_d, jet_lep_t_b, neutrino;
+  vector<Jet> vec_jet_extra;
 
   // fitting objects and handlers
   TFitParticlePt *fit_lepton;
@@ -139,8 +142,11 @@ protected:
   Results results;
   Results_Container results_container;
 
-  TMVA::Reader *reader_permutation[2];
-  TMVA::Reader *reader_pre_kin;
+  vector<float> vec_prekin_score;
+
+  TMVA::Reader *reader_permutation_step_0[2];
+  TMVA::Reader *reader_permutation_step_1[2];
+  TMVA::Reader *reader_prekin_cut;
 
   float met_pt;
   float neutrino_p;
@@ -188,21 +194,24 @@ protected:
   float chi2_constraint_lep_w;
   float chi2;
 
-  float pre_kin_mva_score[4];
+  float prekin_cut_mva_score[4];
 
+  void Remove_Ambiguity();
   bool BJet_Assignment_Cut();
   float Calc_Chi2();
   float Calc_Each_Chi2(TAbsFitConstraint *constraint, float mass, float width);
   float Calc_Each_Chi2(TAbsFitParticle *ptr);
   bool Check_Repetition();
   void Clear();
+  float Define_PreKin_Cut();
   bool End_Permutation() { return next_permutation(vec_permutation.begin(), vec_permutation.end()); }
-  float Get_Pre_Kin_MVA_Score(const TString &fin_path);
+  float Get_PreKin_Cut_MVA_Score(const TString &fin_path);
   void Find_Best_Permutation();
   bool Included_Matched_Jet(const int &index);
   void Index_To_Permutation();
   int Permutation_To_Index(const int &permuation);
-  bool Pre_Kinematic_Cut();
+  bool Pre_Kinematic_Cut_Chi2();
+  float Pre_Kinematic_Score();
   void Print_Permutation();
   bool Quality_Cut();
   void Rebalance_Met();
@@ -214,7 +223,9 @@ protected:
   void Set_Jets();
   void Set_Lepton();
   void Set_Neutrino(const int &index);
+  void Set_Variables_For_MVA(const Results &results);
   void Sol_Neutrino_Pz();
+  void Update_Best(const Results &results);
 
   ClassDef(TKinFitterDriver, 1);
 };
