@@ -87,7 +87,7 @@ public:
     tt_charge = 99999.;
 
     mva_score = 99999.;
-    mva_score_pre_kin = 99999;
+    // mva_score_pre_kin = 99999;
   } // void Reset()
 
   int status;
@@ -118,6 +118,12 @@ public:
   float eta_w_u;
   float eta_w_d;
   float eta_lep_t_b;
+
+  float pt_had_w;
+  float pt_had_t;
+  float pt_lep_w;
+  float pt_lep_t;
+  float pt_tt;
 
   float del_phi_w_u_w_d;
   float del_phi_had_w_had_t_b;
@@ -174,7 +180,7 @@ public:
   float tt_charge;
 
   float mva_score;
-  float mva_score_pre_kin;
+  // float mva_score_pre_kin;
 
   ClassDef(Results, 1);
 };

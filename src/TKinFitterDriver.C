@@ -4,13 +4,15 @@ ClassImp(TKinFitterDriver);
 
 //////////
 
-TKinFitterDriver::TKinFitterDriver(const TString &_data_era, const TString &_channel, bool _run_permutation_tree, bool _run_chi2, bool _rm_wm_constraint, bool _rm_bjet_energy_reg_nn)
+TKinFitterDriver::TKinFitterDriver(const TString &_data_era, bool _run_permutation_tree, bool _run_chi2, bool _rm_wm_constraint, bool _rm_bjet_energy_reg_nn)
 {
-  chk_bvsc_only = true;
-  chk_two_step_reco = true;
+  chk_bvsc_only = false;
+
+  reco_mode = "Two_Step";
+  // reco_mode = "One_Step";
+  // reco_mode = "Mixed";
 
   data_era = _data_era;
-  channel = _channel;
 
   run_permutation_tree = _run_permutation_tree;
   run_chi2 = _run_chi2;
@@ -42,7 +44,8 @@ TKinFitterDriver::TKinFitterDriver(const TString &_data_era, const TString &_cha
       reader_permutation_step_0[i] = new TMVA::Reader("!Color:!Silent");
 
       reader_permutation_step_0[i]->AddSpectator("n_jets", &n_jet);
-      reader_permutation_step_0[i]->AddVariable("met_pt", &met_pt);
+      // reader_permutation_step_0[i]->AddVariable("met_pt", &met_pt);
+      reader_permutation_step_0[i]->AddSpectator("met_pt", &met_pt);
       reader_permutation_step_0[i]->AddVariable("neutrino_p", &neutrino_p);
       reader_permutation_step_0[i]->AddVariable("pt_had_t_b", &pt_had_t_b);
       reader_permutation_step_0[i]->AddVariable("pt_w_u", &pt_w_u);
@@ -53,21 +56,6 @@ TKinFitterDriver::TKinFitterDriver(const TString &_data_era, const TString &_cha
       {
         reader_permutation_step_0[i]->AddVariable("cvsb_had_t_b", &cvsb_had_t_b);
         reader_permutation_step_0[i]->AddVariable("cvsl_had_t_b", &cvsl_had_t_b);
-      }
-      if (!chk_two_step_reco)
-      {
-        reader_permutation_step_0[i]->AddVariable("bvsc_w_u", &bvsc_w_u);
-        if (!chk_bvsc_only)
-        {
-          reader_permutation_step_0[i]->AddVariable("cvsb_w_u", &cvsb_w_u);
-          reader_permutation_step_0[i]->AddVariable("cvsl_w_u", &cvsl_w_u);
-        }
-        reader_permutation_step_0[i]->AddVariable("bvsc_w_d", &bvsc_w_d);
-        if (!chk_bvsc_only)
-        {
-          reader_permutation_step_0[i]->AddVariable("cvsb_w_d", &cvsb_w_d);
-          reader_permutation_step_0[i]->AddVariable("cvsl_w_d", &cvsl_w_d);
-        }
       }
       reader_permutation_step_0[i]->AddVariable("bvsc_lep_t_b", &bvsc_lep_t_b);
       if (!chk_bvsc_only)
@@ -84,19 +72,7 @@ TKinFitterDriver::TKinFitterDriver(const TString &_data_era, const TString &_cha
       reader_permutation_step_0[i]->AddVariable("had_w_mass", &had_w_mass);
       reader_permutation_step_0[i]->AddVariable("lep_t_mass", &lep_t_mass);
       reader_permutation_step_0[i]->AddVariable("lep_t_partial_mass", &lep_t_partial_mass);
-      reader_permutation_step_0[i]->AddVariable("chi2_jet_had_t_b", &chi2_jet_had_t_b);
-      reader_permutation_step_0[i]->AddVariable("chi2_jet_w_u", &chi2_jet_w_u);
-      reader_permutation_step_0[i]->AddVariable("chi2_jet_w_d", &chi2_jet_w_d);
-      reader_permutation_step_0[i]->AddVariable("chi2_jet_lep_t_b", &chi2_jet_lep_t_b);
-      if (i == 0)
-        reader_permutation_step_0[i]->AddSpectator("chi2_jet_extra", &chi2_jet_extra);
-      else
-        reader_permutation_step_0[i]->AddVariable("chi2_jet_extra", &chi2_jet_extra);
-      reader_permutation_step_0[i]->AddVariable("chi2_constraint_had_t", &chi2_constraint_had_t);
-      reader_permutation_step_0[i]->AddVariable("chi2_constraint_had_w", &chi2_constraint_had_w);
-      reader_permutation_step_0[i]->AddVariable("chi2_constraint_lep_t", &chi2_constraint_lep_t);
-      reader_permutation_step_0[i]->AddVariable("chi2_constraint_lep_w", &chi2_constraint_lep_w);
-    } // loop over two
+    } // loop over two; the two is obsolete. But let's leave it because I'm lazy
 
     for (int i = 0; i < 3; i++)
     {
@@ -104,10 +80,7 @@ TKinFitterDriver::TKinFitterDriver(const TString &_data_era, const TString &_cha
       weight_file += "/external/KinematicFitter/data/";
       weight_file += data_era + "/";
 
-      if (chk_two_step_reco)
-        weight_file += "Permutation_Pre_" + to_string(i + 4) + "Jets/weights/TMVAClassification_BDTG.weights.xml";
-      else
-        weight_file += "Permutation_" + to_string(i + 4) + "Jets/weights/TMVAClassification_BDTG.weights.xml";
+      weight_file += "Permutation_Pre_" + to_string(i + 4) + "Jets/weights/TMVAClassification_BDTG.weights.xml";
 
       cout << weight_file << endl;
 
@@ -117,163 +90,140 @@ TKinFitterDriver::TKinFitterDriver(const TString &_data_era, const TString &_cha
         reader_permutation_step_0[1]->BookMVA("Permutation_Step_0_" + to_string(i + 4) + "Jets", weight_file);
     }
 
-    if (chk_two_step_reco)
+    // set reader_permutation_step_1
+    for (int i = 0; i < 2; i++)
     {
-      // set reader_permutation_step_1
-      for (int i = 0; i < 2; i++)
+      reader_permutation_step_1[i] = new TMVA::Reader("!Color:!Silent");
+
+      reader_permutation_step_1[i]->AddSpectator("n_jets", &n_jet);
+      // reader_permutation_step_1[i]->AddVariable("met_pt", &met_pt);
+      reader_permutation_step_1[i]->AddSpectator("met_pt", &met_pt);
+      reader_permutation_step_1[i]->AddVariable("neutrino_p", &neutrino_p);
+      reader_permutation_step_1[i]->AddVariable("pt_had_t_b", &pt_had_t_b);
+      reader_permutation_step_1[i]->AddVariable("pt_w_u", &pt_w_u);
+      reader_permutation_step_1[i]->AddVariable("pt_w_d", &pt_w_d);
+      reader_permutation_step_1[i]->AddVariable("pt_lep_t_b", &pt_lep_t_b);
+      reader_permutation_step_1[i]->AddVariable("bvsc_had_t_b", &bvsc_had_t_b);
+      if (!chk_bvsc_only)
       {
-        reader_permutation_step_1[i] = new TMVA::Reader("!Color:!Silent");
-
-        reader_permutation_step_1[i]->AddSpectator("n_jets", &n_jet);
-        reader_permutation_step_1[i]->AddVariable("met_pt", &met_pt);
-        reader_permutation_step_1[i]->AddVariable("neutrino_p", &neutrino_p);
-        reader_permutation_step_1[i]->AddVariable("pt_had_t_b", &pt_had_t_b);
-        reader_permutation_step_1[i]->AddVariable("pt_w_u", &pt_w_u);
-        reader_permutation_step_1[i]->AddVariable("pt_w_d", &pt_w_d);
-        reader_permutation_step_1[i]->AddVariable("pt_lep_t_b", &pt_lep_t_b);
-        reader_permutation_step_1[i]->AddVariable("bvsc_had_t_b", &bvsc_had_t_b);
-        if (!chk_bvsc_only)
-        {
-          reader_permutation_step_1[i]->AddVariable("cvsb_had_t_b", &cvsb_had_t_b);
-          reader_permutation_step_1[i]->AddVariable("cvsl_had_t_b", &cvsl_had_t_b);
-        }
-        reader_permutation_step_1[i]->AddVariable("bvsc_w_u", &bvsc_w_u);
-        if (!chk_bvsc_only)
-        {
-          reader_permutation_step_1[i]->AddVariable("cvsb_w_u", &cvsb_w_u);
-          reader_permutation_step_1[i]->AddVariable("cvsl_w_u", &cvsl_w_u);
-        }
-        reader_permutation_step_1[i]->AddVariable("bvsc_w_d", &bvsc_w_d);
-        if (!chk_bvsc_only)
-        {
-          reader_permutation_step_1[i]->AddVariable("cvsb_w_d", &cvsb_w_d);
-          reader_permutation_step_1[i]->AddVariable("cvsl_w_d", &cvsl_w_d);
-        }
-        reader_permutation_step_1[i]->AddVariable("bvsc_lep_t_b", &bvsc_lep_t_b);
-        if (!chk_bvsc_only)
-        {
-          reader_permutation_step_1[i]->AddVariable("cvsb_lep_t_b", &cvsb_lep_t_b);
-          reader_permutation_step_1[i]->AddVariable("cvsl_lep_t_b", &cvsl_lep_t_b);
-        }
-        reader_permutation_step_1[i]->AddVariable("theta_w_u_w_d", &theta_w_u_w_d);
-        reader_permutation_step_1[i]->AddVariable("theta_had_w_had_t_b", &theta_had_w_had_t_b);
-        reader_permutation_step_1[i]->AddVariable("theta_lep_neu", &theta_lep_neu);
-        reader_permutation_step_1[i]->AddVariable("theta_lep_w_lep_t_b", &theta_lep_w_lep_t_b);
-        reader_permutation_step_1[i]->AddVariable("del_phi_had_t_lep_t", &del_phi_had_t_lep_t);
-        reader_permutation_step_1[i]->AddVariable("had_t_mass", &had_t_mass);
-        reader_permutation_step_1[i]->AddVariable("had_w_mass", &had_w_mass);
-        reader_permutation_step_1[i]->AddVariable("lep_t_mass", &lep_t_mass);
-        reader_permutation_step_1[i]->AddVariable("lep_t_partial_mass", &lep_t_partial_mass);
-        reader_permutation_step_1[i]->AddVariable("chi2_jet_had_t_b", &chi2_jet_had_t_b);
-        reader_permutation_step_1[i]->AddVariable("chi2_jet_w_u", &chi2_jet_w_u);
-        reader_permutation_step_1[i]->AddVariable("chi2_jet_w_d", &chi2_jet_w_d);
-        reader_permutation_step_1[i]->AddVariable("chi2_jet_lep_t_b", &chi2_jet_lep_t_b);
-        if (i == 0)
-          reader_permutation_step_1[i]->AddSpectator("chi2_jet_extra", &chi2_jet_extra);
-        else
-          reader_permutation_step_1[i]->AddVariable("chi2_jet_extra", &chi2_jet_extra);
-        reader_permutation_step_1[i]->AddVariable("chi2_constraint_had_t", &chi2_constraint_had_t);
-        reader_permutation_step_1[i]->AddVariable("chi2_constraint_had_w", &chi2_constraint_had_w);
-        reader_permutation_step_1[i]->AddVariable("chi2_constraint_lep_t", &chi2_constraint_lep_t);
-        reader_permutation_step_1[i]->AddVariable("chi2_constraint_lep_w", &chi2_constraint_lep_w);
-        // reader_permutation->AddVariable("chi2", &chi2);
-      } // loop over two
-
-      for (int i = 0; i < 3; i++)
-      {
-        TString weight_file = getenv("SKFlat_WD");
-        weight_file += "/external/KinematicFitter/data/";
-        weight_file += data_era + "/";
-        weight_file += "Permutation_" + to_string(i + 4) + "Jets/weights/TMVAClassification_BDTG.weights.xml";
-
-        cout << weight_file << endl;
-
-        if (i == 0)
-          reader_permutation_step_1[0]->BookMVA("Permutation_Step_1_" + to_string(i + 4) + "Jets", weight_file);
-        else
-          reader_permutation_step_1[1]->BookMVA("Permutation_Step_1_" + to_string(i + 4) + "Jets", weight_file);
+        reader_permutation_step_1[i]->AddVariable("cvsb_had_t_b", &cvsb_had_t_b);
+        reader_permutation_step_1[i]->AddVariable("cvsl_had_t_b", &cvsl_had_t_b);
       }
+      reader_permutation_step_1[i]->AddVariable("bvsc_w_u", &bvsc_w_u);
+      if (!chk_bvsc_only)
+      {
+        reader_permutation_step_1[i]->AddVariable("cvsb_w_u", &cvsb_w_u);
+        reader_permutation_step_1[i]->AddVariable("cvsl_w_u", &cvsl_w_u);
+      }
+      reader_permutation_step_1[i]->AddVariable("bvsc_w_d", &bvsc_w_d);
+      if (!chk_bvsc_only)
+      {
+        reader_permutation_step_1[i]->AddVariable("cvsb_w_d", &cvsb_w_d);
+        reader_permutation_step_1[i]->AddVariable("cvsl_w_d", &cvsl_w_d);
+      }
+      reader_permutation_step_1[i]->AddVariable("bvsc_lep_t_b", &bvsc_lep_t_b);
+      if (!chk_bvsc_only)
+      {
+        reader_permutation_step_1[i]->AddVariable("cvsb_lep_t_b", &cvsb_lep_t_b);
+        reader_permutation_step_1[i]->AddVariable("cvsl_lep_t_b", &cvsl_lep_t_b);
+      }
+      reader_permutation_step_1[i]->AddVariable("theta_w_u_w_d", &theta_w_u_w_d);
+      reader_permutation_step_1[i]->AddVariable("theta_had_w_had_t_b", &theta_had_w_had_t_b);
+      reader_permutation_step_1[i]->AddVariable("theta_lep_neu", &theta_lep_neu);
+      reader_permutation_step_1[i]->AddVariable("theta_lep_w_lep_t_b", &theta_lep_w_lep_t_b);
+      reader_permutation_step_1[i]->AddVariable("del_phi_had_t_lep_t", &del_phi_had_t_lep_t);
+      reader_permutation_step_1[i]->AddVariable("had_t_mass", &had_t_mass);
+      reader_permutation_step_1[i]->AddVariable("had_w_mass", &had_w_mass);
+      reader_permutation_step_1[i]->AddVariable("lep_t_mass", &lep_t_mass);
+      reader_permutation_step_1[i]->AddVariable("lep_t_partial_mass", &lep_t_partial_mass);
+    } // // loop over two; the two is obsolete. But let's leave it because I'm lazy
+
+    for (int i = 0; i < 3; i++)
+    {
+      TString weight_file = getenv("SKFlat_WD");
+      weight_file += "/external/KinematicFitter/data/";
+      weight_file += data_era + "/";
+      weight_file += "Permutation_" + to_string(i + 4) + "Jets/weights/TMVAClassification_BDTG.weights.xml";
+
+      cout << weight_file << endl;
+
+      if (i == 0)
+        reader_permutation_step_1[0]->BookMVA("Permutation_Step_1_" + to_string(i + 4) + "Jets", weight_file);
+      else
+        reader_permutation_step_1[1]->BookMVA("Permutation_Step_1_" + to_string(i + 4) + "Jets", weight_file);
     }
 
+    /*
     // set reader_prekin_cut
-    reader_prekin_cut = new TMVA::Reader("!Color:!Silent");
+    for (int i = 0; i < 2; i++)
+    {
+      reader_prekin_cut[i] = new TMVA::Reader("!Color:!Silent");
 
-    reader_prekin_cut->AddSpectator("n_jets", &n_jet);
-    reader_prekin_cut->AddVariable("met_pt", &met_pt);
-    reader_prekin_cut->AddVariable("neutrino_p", &neutrino_p);
-    reader_prekin_cut->AddVariable("pt_had_t_b", &pt_had_t_b);
-    reader_prekin_cut->AddVariable("pt_w_u", &pt_w_u);
-    reader_prekin_cut->AddVariable("pt_w_d", &pt_w_d);
-    reader_prekin_cut->AddVariable("pt_lep_t_b", &pt_lep_t_b);
-    reader_prekin_cut->AddVariable("bvsc_had_t_b", &bvsc_had_t_b);
-    if (!chk_bvsc_only)
-    {
-      reader_prekin_cut->AddVariable("cvsb_had_t_b", &cvsb_had_t_b);
-      reader_prekin_cut->AddVariable("cvsl_had_t_b", &cvsl_had_t_b);
-    }
-    if (!chk_two_step_reco)
-    {
-      reader_prekin_cut->AddVariable("bvsc_w_u", &bvsc_w_u);
+      reader_prekin_cut[i]->AddSpectator("n_jets", &n_jet);
+      reader_prekin_cut[i]->AddVariable("met_pt", &met_pt);
+      reader_prekin_cut[i]->AddVariable("neutrino_p", &neutrino_p);
+      reader_prekin_cut[i]->AddVariable("pt_had_t_b", &pt_had_t_b);
+      reader_prekin_cut[i]->AddVariable("pt_w_u", &pt_w_u);
+      reader_prekin_cut[i]->AddVariable("pt_w_d", &pt_w_d);
+      reader_prekin_cut[i]->AddVariable("pt_lep_t_b", &pt_lep_t_b);
+      reader_prekin_cut[i]->AddVariable("bvsc_had_t_b", &bvsc_had_t_b);
       if (!chk_bvsc_only)
       {
-        reader_prekin_cut->AddVariable("cvsb_w_u", &cvsb_w_u);
-        reader_prekin_cut->AddVariable("cvsl_w_u", &cvsl_w_u);
+        reader_prekin_cut[i]->AddVariable("cvsb_had_t_b", &cvsb_had_t_b);
+        reader_prekin_cut[i]->AddVariable("cvsl_had_t_b", &cvsl_had_t_b);
       }
-      reader_prekin_cut->AddVariable("bvsc_w_d", &bvsc_w_d);
+      if (i == 1)
+      {
+        reader_prekin_cut[i]->AddVariable("bvsc_w_u", &bvsc_w_u);
+        if (!chk_bvsc_only)
+        {
+          reader_prekin_cut[i]->AddVariable("cvsb_w_u", &cvsb_w_u);
+          reader_prekin_cut[i]->AddVariable("cvsl_w_u", &cvsl_w_u);
+        }
+        reader_prekin_cut[i]->AddVariable("bvsc_w_d", &bvsc_w_d);
+        if (!chk_bvsc_only)
+        {
+          reader_prekin_cut[i]->AddVariable("cvsb_w_d", &cvsb_w_d);
+          reader_prekin_cut[i]->AddVariable("cvsl_w_d", &cvsl_w_d);
+        }
+      }
+      reader_prekin_cut[i]->AddVariable("bvsc_lep_t_b", &bvsc_lep_t_b);
       if (!chk_bvsc_only)
       {
-        reader_prekin_cut->AddVariable("cvsb_w_d", &cvsb_w_d);
-        reader_prekin_cut->AddVariable("cvsl_w_d", &cvsl_w_d);
+        reader_prekin_cut[i]->AddVariable("cvsb_lep_t_b", &cvsb_lep_t_b);
+        reader_prekin_cut[i]->AddVariable("cvsl_lep_t_b", &cvsl_lep_t_b);
       }
-    }
-    reader_prekin_cut->AddVariable("bvsc_lep_t_b", &bvsc_lep_t_b);
-    if (!chk_bvsc_only)
-    {
-      reader_prekin_cut->AddVariable("cvsb_lep_t_b", &cvsb_lep_t_b);
-      reader_prekin_cut->AddVariable("cvsl_lep_t_b", &cvsl_lep_t_b);
-    }
-      reader_prekin_cut->AddVariable("theta_w_u_w_d", &theta_w_u_w_d);
-      reader_prekin_cut->AddVariable("theta_had_w_had_t_b", &theta_had_w_had_t_b);
-      reader_prekin_cut->AddVariable("theta_lep_neu", &theta_lep_neu);
-      reader_prekin_cut->AddVariable("theta_lep_w_lep_t_b", &theta_lep_w_lep_t_b);
-      reader_prekin_cut->AddVariable("del_phi_had_t_lep_t", &del_phi_had_t_lep_t);
-      reader_prekin_cut->AddVariable("had_t_mass", &had_t_mass);
-      reader_prekin_cut->AddVariable("had_w_mass", &had_w_mass);
-      reader_prekin_cut->AddVariable("lep_t_mass", &lep_t_mass);
-      reader_prekin_cut->AddVariable("lep_t_partial_mass", &lep_t_partial_mass);
+      reader_prekin_cut[i]->AddVariable("theta_w_u_w_d", &theta_w_u_w_d);
+      reader_prekin_cut[i]->AddVariable("theta_had_w_had_t_b", &theta_had_w_had_t_b);
+      reader_prekin_cut[i]->AddVariable("theta_lep_neu", &theta_lep_neu);
+      reader_prekin_cut[i]->AddVariable("theta_lep_w_lep_t_b", &theta_lep_w_lep_t_b);
+      reader_prekin_cut[i]->AddVariable("del_phi_had_t_lep_t", &del_phi_had_t_lep_t);
+      reader_prekin_cut[i]->AddVariable("had_t_mass", &had_t_mass);
+      reader_prekin_cut[i]->AddVariable("had_w_mass", &had_w_mass);
+      reader_prekin_cut[i]->AddVariable("lep_t_mass", &lep_t_mass);
+      reader_prekin_cut[i]->AddVariable("lep_t_partial_mass", &lep_t_partial_mass);
 
-      for (int i = 0; i < 3; i++)
+      for (int j = 0; j < 3; j++)
       {
         TString weight_file = getenv("SKFlat_WD");
         weight_file += "/external/KinematicFitter/data/";
         weight_file += data_era + "/";
 
-        if (chk_two_step_reco)
-          weight_file += "PreKin_Cut_Pre_" + to_string(i + 4) + "Jets/weights/TMVAClassification_BDTG.weights.xml";
-        else
-          weight_file += "PreKin_Cut_" + to_string(i + 4) + "Jets/weights/TMVAClassification_BDTG.weights.xml";
+        if (i == 0)
+          weight_file += "PreKin_Cut_Pre_" + to_string(j + 4) + "Jets/weights/TMVAClassification_BDTG.weights.xml";
+        else if (i == 1)
+          weight_file += "PreKin_Cut_" + to_string(j + 4) + "Jets/weights/TMVAClassification_BDTG.weights.xml";
 
         cout << weight_file << endl;
 
-        if (chk_two_step_reco)
-          reader_prekin_cut->BookMVA("PreKin_Cut_Pre_" + to_string(i + 4) + "Jets", weight_file);
-        else
-          reader_prekin_cut->BookMVA("PreKin_Cut_" + to_string(i + 4) + "Jets", weight_file);
-
-        TString fin_prekin_cut_mva = getenv("SKFlat_WD");
-        fin_prekin_cut_mva += "/external/KinematicFitter/data/";
-        fin_prekin_cut_mva += data_era + "/";
-
-        if (chk_two_step_reco)
-          fin_prekin_cut_mva += "PreKin_Cut_Pre_" + to_string(i + 4) + "Jets/Vcb_PreKin_Cut_Pre_TTLJ_WtoCB_" + to_string(i + 4) + "Jets.root";
-        else
-          fin_prekin_cut_mva += "PreKin_Cut_" + to_string(i + 4) + "Jets/Vcb_PreKin_Cut_TTLJ_WtoCB_" + to_string(i + 4) + "Jets.root";
-
-        cout << fin_prekin_cut_mva << endl;
-
-        // prekin_cut_mva_score[i] = Get_PreKin_Cut_MVA_Score(fin_prekin_cut_mva);
-      }
-    } // if (!run_permutation_tree)
+        if (i == 0)
+          reader_prekin_cut[i]->BookMVA("PreKin_Cut_Pre_" + to_string(j + 4) + "Jets", weight_file);
+        else if (i == 1)
+          reader_prekin_cut[i]->BookMVA("PreKin_Cut_" + to_string(j + 4) + "Jets", weight_file);
+      } // loop over j
+    }   // loop over i
+    */
+  } // if (!run_permutation_tree)
 } // TKinFitterDriver::TKinFitterDriver(int _DataYear)
 
 //////////
@@ -287,43 +237,6 @@ void TKinFitterDriver::Scan()
   /*mva method*/
   if (!run_chi2)
   {
-    if (!run_permutation_tree)
-    {
-      vec_prekin_score.clear();
-
-      // loop over jet permutation
-      do
-      {
-        // Print_Permutation();
-
-        Set_Jets();
-        Rebalance_Met();
-        Sol_Neutrino_Pz();
-
-        // loop over neutrino permuation
-        int n_neutrino_sol;
-        if (chk_real_neu_pz == true)
-          n_neutrino_sol = 2;
-        else if (chk_real_neu_pz == false)
-          n_neutrino_sol = 1;
-
-        for (int i = 0; i < n_neutrino_sol; ++i)
-        {
-          index_neutrino_sol = i;
-          Set_Neutrino(index_neutrino_sol);
-          // cout << "test neutrino pz = " << neutrino_pz_sol[index_neutrino_sol] << endl;
-
-          float prekin_score = Pre_Kinematic_Score();
-
-          vec_prekin_score.push_back(prekin_score);
-        }                          // loop over neutrino pz solution
-      } while (End_Permutation()); // loop over jet permutation
-    }
-
-    // define cut value of pre_kin_score
-    float prekin_cut = Define_PreKin_Cut();
-
-    int permutation_index = 0;
     do
     {
       // Print_Permutation();
@@ -344,29 +257,17 @@ void TKinFitterDriver::Scan()
         index_neutrino_sol = i;
         Set_Neutrino(index_neutrino_sol);
 
-        if (!run_permutation_tree)
+        if (run_permutation_tree)
         {
-          // pre kinematic cut
-          float prekin_score = vec_prekin_score[permutation_index];
-          permutation_index++;
+          // contruct TFitConstraint objects
+          Set_Constraints();
 
-          if (prekin_score < prekin_cut)
-          {
-            results.cut = CUT_RESULT::PRE_KINEMATIC;
-            Save_Permutation(true);
+          // register things to fitter
+          Set_Fitter();
 
-            continue;
-          }
+          // fit
+          results.status = fitter->fit();
         }
-
-        // contruct TFitConstraint objects
-        Set_Constraints();
-
-        // register things to fitter
-        Set_Fitter();
-
-        // fit
-        results.status = fitter->fit();
 
         results.cut = CUT_RESULT::PASS;
 
@@ -473,7 +374,7 @@ void TKinFitterDriver::Scan()
   // remove ambiguity using tagging_score of w_u and w_d
   if (!run_permutation_tree && !run_chi2)
   {
-    if (chk_two_step_reco)
+    if (reco_mode == "Two_Step" || (reco_mode == "Mixed" && n_btag == 2))
       Remove_Ambiguity();
     else
     {
@@ -482,14 +383,23 @@ void TKinFitterDriver::Scan()
     }
   }
 
+  // calculate chi2 only for best permutation
+  // to save time, let's do it later in case it is needed
+
   return;
 } // void TKinFitterDriver::Scan()
 
 //////////
 
-void TKinFitterDriver::Set_Objects(vector<Jet> &_vec_jet, vector<float> &_vec_resolution_pt, vector<bool> &_vec_btag, Lepton &_lepton, Particle &_met, bool _chk_matched, int *_index_matched_jet)
+void TKinFitterDriver::Set_Objects(TString &_channel, vector<Jet> &_vec_jet, vector<float> &_vec_resolution_pt, vector<bool> &_vec_btag, Lepton &_lepton, Particle &_met, bool _chk_matched, int *_index_matched_jet)
 {
   Clear();
+
+  channel = _channel;
+  if (channel == "Mu")
+    channel = "Muon";
+  else if (channel == "El")
+    channel = "Electron";
 
   vec_jet = _vec_jet;
   vec_resolution_pt = _vec_resolution_pt;
@@ -805,7 +715,7 @@ void TKinFitterDriver::Clear()
 } // void TKinFitterDriver::Clear()
 
 //////////
-
+/*
 float TKinFitterDriver::Define_PreKin_Cut()
 {
   if (run_permutation_tree)
@@ -813,18 +723,20 @@ float TKinFitterDriver::Define_PreKin_Cut()
 
   vector<float> vec_temp = vec_prekin_score;
 
-  int nth = vec_temp.size() * 0.1;
+  int nth = vec_temp.size() * 0.1; // cut 90%
   nth_element(vec_temp.begin(), vec_temp.begin() + nth, vec_temp.end(), std::greater<float>());
 
   float prekin_cut = vec_temp[nth];
 
   return prekin_cut;
 } // float TKinFitterDriver::Define_PreKin_Cut()
-
+*/
 //////////
 
 float TKinFitterDriver::Get_PreKin_Cut_MVA_Score(const TString &fin_path)
 {
+  // obsolete
+
   float pre_kin_mva_cut = 1;
   const float eff_s_cut = 0.90;
 
@@ -875,13 +787,26 @@ void TKinFitterDriver::Find_Best_Permutation()
 
       // cout << pt_had_t_b << " " << pt_w_u << " " << pt_w_d << " " << pt_lep_t_b << " " << theta_w_u_w_d << " " << theta_had_w_had_t_b << " " << theta_lep_neu << " " << theta_lep_w_lep_t_b << " " << del_phi_had_t_lep_t << " " << had_t_mass << " " << had_w_mass << " " << lep_t_mass << " " << lep_t_partial_mass << " " << chi2 << endl;
 
-      float mva_score;
-      if (n_jet == 4)
-        mva_score = reader_permutation_step_0[0]->EvaluateMVA("Permutation_Step_0_4Jets");
-      else if (n_jet == 5)
-        mva_score = reader_permutation_step_0[1]->EvaluateMVA("Permutation_Step_0_5Jets");
-      else if (n_jet >= 6)
-        mva_score = reader_permutation_step_0[1]->EvaluateMVA("Permutation_Step_0_6Jets");
+      float mva_score = -999;
+
+      if (reco_mode == "Two_Step" || (reco_mode == "Mixed" && n_btag == 2))
+      {
+        if (n_jet == 4)
+          mva_score = reader_permutation_step_0[0]->EvaluateMVA("Permutation_Step_0_4Jets");
+        else if (n_jet == 5)
+          mva_score = reader_permutation_step_0[1]->EvaluateMVA("Permutation_Step_0_5Jets");
+        else
+          mva_score = reader_permutation_step_0[1]->EvaluateMVA("Permutation_Step_0_6Jets");
+      }
+      else if (reco_mode == "One_Step" || (reco_mode == "Mixed" && n_btag >= 3))
+      {
+        if (n_jet == 4)
+          mva_score = reader_permutation_step_1[0]->EvaluateMVA("Permutation_Step_1_4Jets");
+        else if (n_jet == 5)
+          mva_score = reader_permutation_step_1[1]->EvaluateMVA("Permutation_Step_1_5Jets");
+        else
+          mva_score = reader_permutation_step_1[1]->EvaluateMVA("Permutation_Step_1_6Jets");
+      }
 
       results.mva_score = mva_score;
 
@@ -922,6 +847,8 @@ void TKinFitterDriver::Find_Best_Permutation()
 
     Update_Best(results);
   }
+  else
+    results_container.status = false;
 
   // cout << "Best Permutation = " << results_container.best_index_had_t_b << " " << results_container.best_index_w_u << " " << results_container.best_index_w_d << " " << results_container.best_index_lep_t_b << endl;
   // cout << results_container.best_chi2 << " " <<  results_container.best_fitted_had_t_mass << " " <<  results_container.best_fitted_had_w_mass << endl;
@@ -1067,7 +994,7 @@ bool TKinFitterDriver::Pre_Kinematic_Cut_Chi2()
 } // bool TKinFitterDriver::Pre_Kinematic_Cut_Chi2()
 
 //////////
-
+/*
 float TKinFitterDriver::Pre_Kinematic_Score()
 {
   // return mva score with pre kinematics excluding chi2s
@@ -1120,26 +1047,26 @@ float TKinFitterDriver::Pre_Kinematic_Score()
   float mva_score;
   if (6 <= n_jet)
   {
-    if (chk_two_step_reco)
-      mva_score = reader_prekin_cut->EvaluateMVA("PreKin_Cut_Pre_6Jets");
-    else
-      mva_score = reader_prekin_cut->EvaluateMVA("PreKin_Cut_6Jets");
+    if (reco_mode == "Two_Step" || (reco_mode == "Mixed" && n_btag == 2))
+      mva_score = reader_prekin_cut[0]->EvaluateMVA("PreKin_Cut_Pre_6Jets");
+    else if (reco_mode == "One_Step" || (reco_mode == "Mixed" && n_btag >= 3))
+      mva_score = reader_prekin_cut[1]->EvaluateMVA("PreKin_Cut_6Jets");
 
     return mva_score;
   }
   else
   {
-    if (chk_two_step_reco)
-      mva_score = reader_prekin_cut->EvaluateMVA("PreKin_Cut_Pre_" + to_string(n_jet) + "Jets");
-    else
-      mva_score = reader_prekin_cut->EvaluateMVA("PreKin_Cut_" + to_string(n_jet) + "Jets");
+    if (reco_mode == "Two_Step" || (reco_mode == "Mixed" && n_btag == 2))
+      mva_score = reader_prekin_cut[0]->EvaluateMVA("PreKin_Cut_Pre_" + to_string(n_jet) + "Jets");
+    else if (reco_mode == "One_Step" || (reco_mode == "Mixed" && n_btag >= 3))
+      mva_score = reader_prekin_cut[1]->EvaluateMVA("PreKin_Cut_" + to_string(n_jet) + "Jets");
 
     return mva_score;
   }
 
   return -1;
 } // bool TKinFitterDriver::Pre_Kinematic_Score()
-
+*/
 //////////
 
 void TKinFitterDriver::Print_Permutation()
@@ -1299,6 +1226,7 @@ void TKinFitterDriver::Save_Results()
   TLorentzVector initial_had_w = jet_w_u + jet_w_d;
   TLorentzVector initial_lep_t = jet_lep_t_b + lepton + neutrino;
   TLorentzVector initial_lep_w = lepton + neutrino;
+  TLorentzVector initial_tt = initial_had_t + initial_lep_t;
 
   results.pt_had_t_b = jet_had_t_b.Pt();
   results.pt_w_u = jet_w_u.Pt();
@@ -1309,6 +1237,12 @@ void TKinFitterDriver::Save_Results()
   results.eta_w_u = jet_w_u.Eta();
   results.eta_w_d = jet_w_d.Eta();
   results.eta_lep_t_b = jet_lep_t_b.Eta();
+
+  results.pt_had_w = initial_had_w.Pt();
+  results.pt_had_t = initial_had_t.Pt();
+  results.pt_lep_w = initial_lep_w.Pt();
+  results.pt_lep_t = initial_lep_t.Pt();
+  results.pt_tt = initial_tt.Pt();
 
   results.del_phi_w_u_w_d = TMath::Abs(jet_w_u.DeltaPhi(jet_w_d));
   results.del_phi_had_w_had_t_b = TMath::Abs(initial_had_w.DeltaPhi(jet_had_t_b));
@@ -1334,58 +1268,61 @@ void TKinFitterDriver::Save_Results()
   results.theta_lep_w_lep_t_b = initial_lep_w.Angle(jet_lep_t_b.Vect());
   results.theta_had_t_lep_t = initial_had_t.Angle(initial_lep_t.Vect());
 
-  // construct fitted objects
-  const TLorentzVector *tmp = fit_jet_had_t_b->getCurr4Vec();
-  TLorentzVector fitted_jet_had_t_b(tmp->Px(), tmp->Py(), tmp->Pz(), tmp->E());
-
-  tmp = fit_jet_w_u->getCurr4Vec();
-  TLorentzVector fitted_jet_w_u(tmp->Px(), tmp->Py(), tmp->Pz(), tmp->E());
-
-  tmp = fit_jet_w_d->getCurr4Vec();
-  TLorentzVector fitted_jet_w_d(tmp->Px(), tmp->Py(), tmp->Pz(), tmp->E());
-
-  tmp = fit_jet_lep_t_b->getCurr4Vec();
-  TLorentzVector fitted_jet_lep_t_b(tmp->Px(), tmp->Py(), tmp->Pz(), tmp->E());
-
-  tmp = fit_lepton->getCurr4Vec();
-  TLorentzVector fitted_lepton(tmp->Px(), tmp->Py(), tmp->Pz(), tmp->E());
-
-  tmp = fit_neutrino->getCurr4Vec();
-  TLorentzVector fitted_neutrino(tmp->Px(), tmp->Py(), tmp->Pz(), tmp->E());
-
-  TLorentzVector fitted_had_t = fitted_jet_had_t_b + fitted_jet_w_u + fitted_jet_w_d;
-  TLorentzVector fitted_had_w = fitted_jet_w_u + fitted_jet_w_d;
-  TLorentzVector fitted_lep_t = fitted_jet_lep_t_b + fitted_lepton + fitted_neutrino;
-  TLorentzVector fitted_lep_w = fitted_lepton + fitted_neutrino;
-
-  results.chi2_jet_had_t_b = Calc_Each_Chi2(fit_jet_had_t_b);
-  results.chi2_jet_w_u = Calc_Each_Chi2(fit_jet_w_u);
-  results.chi2_jet_w_d = Calc_Each_Chi2(fit_jet_w_d);
-  results.chi2_jet_lep_t_b = Calc_Each_Chi2(fit_jet_lep_t_b);
-
-  results.chi2_jet_extra = 0;
-  for (unsigned int i = 0; i < vec_fit_jet_extra.size(); i++)
-  {
-    results.chi2_jet_extra += Calc_Each_Chi2(vec_fit_jet_extra.at(i));
-  }
-
-  results.chi2_constraint_had_t = Calc_Each_Chi2(constraint_had_t_mgaus, T_MASS, T_WIDTH);
-  results.chi2_constraint_had_w = Calc_Each_Chi2(constraint_had_w_mgaus, W_MASS, W_WIDTH);
-  results.chi2_constraint_lep_t = Calc_Each_Chi2(constraint_lep_t_mgaus, T_MASS, T_WIDTH);
-  results.chi2_constraint_lep_w = Calc_Each_Chi2(constraint_lep_w_mgaus, W_MASS, W_WIDTH);
-
-  results.chi2 = Calc_Chi2();
-
   results.initial_had_t_mass = initial_had_t.M();
   results.initial_had_w_mass = initial_had_w.M();
   results.initial_lep_t_mass = initial_lep_t.M();
   results.initial_lep_t_partial_mass = (jet_lep_t_b + lepton).M();
   results.initial_lep_w_mass = initial_lep_w.M();
 
-  results.fitted_had_t_mass = fitted_had_t.M();
-  results.fitted_had_w_mass = fitted_had_w.M();
-  results.fitted_lep_t_mass = fitted_lep_t.M();
-  results.fitted_lep_w_mass = fitted_lep_w.M();
+  if (run_permutation_tree)
+  {
+    // construct fitted objects
+    const TLorentzVector *tmp = fit_jet_had_t_b->getCurr4Vec();
+    TLorentzVector fitted_jet_had_t_b(tmp->Px(), tmp->Py(), tmp->Pz(), tmp->E());
+
+    tmp = fit_jet_w_u->getCurr4Vec();
+    TLorentzVector fitted_jet_w_u(tmp->Px(), tmp->Py(), tmp->Pz(), tmp->E());
+
+    tmp = fit_jet_w_d->getCurr4Vec();
+    TLorentzVector fitted_jet_w_d(tmp->Px(), tmp->Py(), tmp->Pz(), tmp->E());
+
+    tmp = fit_jet_lep_t_b->getCurr4Vec();
+    TLorentzVector fitted_jet_lep_t_b(tmp->Px(), tmp->Py(), tmp->Pz(), tmp->E());
+
+    tmp = fit_lepton->getCurr4Vec();
+    TLorentzVector fitted_lepton(tmp->Px(), tmp->Py(), tmp->Pz(), tmp->E());
+
+    tmp = fit_neutrino->getCurr4Vec();
+    TLorentzVector fitted_neutrino(tmp->Px(), tmp->Py(), tmp->Pz(), tmp->E());
+
+    TLorentzVector fitted_had_t = fitted_jet_had_t_b + fitted_jet_w_u + fitted_jet_w_d;
+    TLorentzVector fitted_had_w = fitted_jet_w_u + fitted_jet_w_d;
+    TLorentzVector fitted_lep_t = fitted_jet_lep_t_b + fitted_lepton + fitted_neutrino;
+    TLorentzVector fitted_lep_w = fitted_lepton + fitted_neutrino;
+
+    results.chi2_jet_had_t_b = Calc_Each_Chi2(fit_jet_had_t_b);
+    results.chi2_jet_w_u = Calc_Each_Chi2(fit_jet_w_u);
+    results.chi2_jet_w_d = Calc_Each_Chi2(fit_jet_w_d);
+    results.chi2_jet_lep_t_b = Calc_Each_Chi2(fit_jet_lep_t_b);
+
+    results.chi2_jet_extra = 0;
+    for (unsigned int i = 0; i < vec_fit_jet_extra.size(); i++)
+    {
+      results.chi2_jet_extra += Calc_Each_Chi2(vec_fit_jet_extra.at(i));
+    }
+
+    results.chi2_constraint_had_t = Calc_Each_Chi2(constraint_had_t_mgaus, T_MASS, T_WIDTH);
+    results.chi2_constraint_had_w = Calc_Each_Chi2(constraint_had_w_mgaus, W_MASS, W_WIDTH);
+    results.chi2_constraint_lep_t = Calc_Each_Chi2(constraint_lep_t_mgaus, T_MASS, T_WIDTH);
+    results.chi2_constraint_lep_w = Calc_Each_Chi2(constraint_lep_w_mgaus, W_MASS, W_WIDTH);
+
+    results.chi2 = Calc_Chi2();
+
+    results.fitted_had_t_mass = fitted_had_t.M();
+    results.fitted_had_w_mass = fitted_had_w.M();
+    results.fitted_lep_t_mass = fitted_lep_t.M();
+    results.fitted_lep_w_mass = fitted_lep_w.M();
+  } // if (run_permutation_tree)
 
   results.had_w_charge_abs = TMath::Abs(jet_w_u.Charge() + jet_w_d.Charge());
   results.had_t_charge_abs = TMath::Abs(jet_had_t_b.Charge() + jet_w_u.Charge() + jet_w_d.Charge());

@@ -42,19 +42,19 @@ class TKinFitterDriver : public TObject
 {
 public:
   TKinFitterDriver(){};
-  TKinFitterDriver(const TString &_data_era, const TString &_channel, bool _run_permutatation_tree = false, bool _run_chi2 = false, bool _rm_wm_constraint = false, bool _rm_bjet_energy_reg_nn = false);
+  TKinFitterDriver(const TString &_data_era, bool _run_permutatation_tree = false, bool _run_chi2 = false, bool _rm_wm_constraint = false, bool _rm_bjet_energy_reg_nn = false);
 
   bool Check_Status() { return results_container.status; }
   Results_Container Get_Results() { return results_container; }
   void Scan();
-  void Set_Objects(vector<Jet> &_vec_jet, vector<float> &_vec_resolution_pt, vector<bool> &_vec_btag, Lepton &_lepton, Particle &_met, bool _chk_matched = false, int *_index_matched_jet = NULL);
+  void Set_Objects(TString& _channel, vector<Jet> &_vec_jet, vector<float> &_vec_resolution_pt, vector<bool> &_vec_btag, Lepton &_lepton, Particle &_met, bool _chk_matched = false, int *_index_matched_jet = NULL);
 
 protected:
   TString data_era;
   TString channel;
 
   bool chk_bvsc_only = false;
-  bool chk_two_step_reco = true;
+  TString reco_mode;
 
   bool run_permutation_tree;
   bool bjet_energy_reg_nn;
@@ -144,9 +144,10 @@ protected:
 
   vector<float> vec_prekin_score;
 
-  TMVA::Reader *reader_permutation_step_0[2];
-  TMVA::Reader *reader_permutation_step_1[2];
-  TMVA::Reader *reader_prekin_cut;
+  // caveat! index are confusing. It's ugly but I don't want to spend time to make it neat
+  TMVA::Reader *reader_permutation_step_0[2]; // 0 for 4jets, 1 for 5 or greater
+  TMVA::Reader *reader_permutation_step_1[2]; // 0 for 4jets, 1 for 5 or greater
+  TMVA::Reader *reader_prekin_cut[2];         // 0 for prekin_pre, 1 for prekin
 
   float met_pt;
   float neutrino_p;
@@ -203,7 +204,7 @@ protected:
   float Calc_Each_Chi2(TAbsFitParticle *ptr);
   bool Check_Repetition();
   void Clear();
-  float Define_PreKin_Cut();
+  // float Define_PreKin_Cut();
   bool End_Permutation() { return next_permutation(vec_permutation.begin(), vec_permutation.end()); }
   float Get_PreKin_Cut_MVA_Score(const TString &fin_path);
   void Find_Best_Permutation();
@@ -211,7 +212,7 @@ protected:
   void Index_To_Permutation();
   int Permutation_To_Index(const int &permuation);
   bool Pre_Kinematic_Cut_Chi2();
-  float Pre_Kinematic_Score();
+  // float Pre_Kinematic_Score();
   void Print_Permutation();
   bool Quality_Cut();
   void Rebalance_Met();
