@@ -14,6 +14,15 @@ TKinFitterDriver::TKinFitterDriver(const TString &_data_era, bool _run_permutati
 
   data_era = _data_era;
 
+  if (data_era == "2016preVFP")
+    era_index = 0;
+  else if (data_era == "2016postVFP")
+    era_index = 1;
+  else if (data_era == "2017")
+    era_index = 2;
+  else if (data_era == "2018")
+    era_index = 3;
+
   run_permutation_tree = _run_permutation_tree;
   run_chi2 = _run_chi2;
   rm_wm_constraint = _rm_wm_constraint;
@@ -63,6 +72,11 @@ TKinFitterDriver::TKinFitterDriver(const TString &_data_era, bool _run_permutati
         reader_permutation_step_0[i]->AddVariable("cvsb_lep_t_b", &cvsb_lep_t_b);
         reader_permutation_step_0[i]->AddVariable("cvsl_lep_t_b", &cvsl_lep_t_b);
       }
+      reader_permutation_step_0[i]->AddVariable("pt_had_w", &pt_had_w);
+      reader_permutation_step_0[i]->AddVariable("pt_had_t", &pt_had_t);
+      reader_permutation_step_0[i]->AddVariable("pt_lep_w", &pt_lep_w);
+      reader_permutation_step_0[i]->AddVariable("pt_lep_t", &pt_lep_w);
+      reader_permutation_step_0[i]->AddVariable("pt_tt", &pt_tt);
       reader_permutation_step_0[i]->AddVariable("theta_w_u_w_d", &theta_w_u_w_d);
       reader_permutation_step_0[i]->AddVariable("theta_had_w_had_t_b", &theta_had_w_had_t_b);
       reader_permutation_step_0[i]->AddVariable("theta_lep_neu", &theta_lep_neu);
@@ -127,6 +141,11 @@ TKinFitterDriver::TKinFitterDriver(const TString &_data_era, bool _run_permutati
         reader_permutation_step_1[i]->AddVariable("cvsb_lep_t_b", &cvsb_lep_t_b);
         reader_permutation_step_1[i]->AddVariable("cvsl_lep_t_b", &cvsl_lep_t_b);
       }
+      reader_permutation_step_1[i]->AddVariable("pt_had_w", &pt_had_w);
+      reader_permutation_step_1[i]->AddVariable("pt_had_t", &pt_had_t);
+      reader_permutation_step_1[i]->AddVariable("pt_lep_w", &pt_lep_w);
+      reader_permutation_step_1[i]->AddVariable("pt_lep_t", &pt_lep_w);
+      reader_permutation_step_1[i]->AddVariable("pt_tt", &pt_tt);
       reader_permutation_step_1[i]->AddVariable("theta_w_u_w_d", &theta_w_u_w_d);
       reader_permutation_step_1[i]->AddVariable("theta_had_w_had_t_b", &theta_had_w_had_t_b);
       reader_permutation_step_1[i]->AddVariable("theta_lep_neu", &theta_lep_neu);
@@ -224,6 +243,30 @@ TKinFitterDriver::TKinFitterDriver(const TString &_data_era, bool _run_permutati
     }   // loop over i
     */
   } // if (!run_permutation_tree)
+
+  env = new Ort::Env(ORT_LOGGING_LEVEL_VERBOSE, "ONNXInference");
+  Ort::SessionOptions session_options;
+  session_options.SetIntraOpNumThreads(1);
+  session_options.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_EXTENDED);
+
+  for (int i = 0; i < 1; i++)
+  {
+    TString onnx = getenv("SKFlat_WD");
+    onnx += "/external/KinematicFitter/data/";
+    onnx += to_string(i + 4);
+    onnx += "jet_first_bdt_pipeline_xgboost.onnx";
+
+    session_pre[i] = new Ort::Session(*env, onnx.Data(), session_options);
+
+    onnx = getenv("SKFlat_WD");
+    onnx += "/external/KinematicFitter/data/";
+    onnx += to_string(i + 4);
+    onnx += "jet_second_bdt_pipeline_xgboost.onnx";
+
+    session[i] = new Ort::Session(*env, onnx.Data(), session_options);
+  }
+
+  memory_info = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
 } // TKinFitterDriver::TKinFitterDriver(int _DataYear)
 
 //////////
@@ -412,7 +455,6 @@ void TKinFitterDriver::Set_Objects(TString &_channel, vector<Jet> &_vec_jet, vec
   n_jet = vec_jet.size();
   int n_vec_resolution_pt = vec_resolution_pt.size();
   int n_vec_btag = vec_btag.size();
-
   if (n_jet != n_vec_resolution_pt || n_jet != n_vec_btag)
   {
     cerr << "The size of two vectors are not same. Check it." << endl;
@@ -689,16 +731,16 @@ bool TKinFitterDriver::Check_Repetition()
 void TKinFitterDriver::Clear()
 {
   vec_jet.clear();
-  vec_jet.shrink_to_fit();
+  // vec_jet.shrink_to_fit();
 
   vec_resolution_pt.clear();
-  vec_resolution_pt.shrink_to_fit();
+  // vec_resolution_pt.shrink_to_fit();
 
   vec_btag.clear();
-  vec_btag.shrink_to_fit();
+  // vec_btag.shrink_to_fit();
 
   vec_permutation.clear();
-  vec_permutation.shrink_to_fit();
+  // vec_permutation.shrink_to_fit();
 
   chk_matched = false;
 
@@ -808,7 +850,22 @@ void TKinFitterDriver::Find_Best_Permutation()
           mva_score = reader_permutation_step_1[1]->EvaluateMVA("Permutation_Step_1_6Jets");
       }
 
-      results.mva_score = mva_score;
+      const std::vector<int64_t> input_shape = {1, static_cast<int64_t>(input_data.size())};
+      Ort::Value input_tensor = Ort::Value::CreateTensor<float>(memory_info, input_data.data(), input_data.size(), input_shape.data(), input_shape.size());
+
+      vector<Ort::Value> ort_outputs = session_pre[0]->Run(Ort::RunOptions{nullptr}, input_names, &input_tensor, 1, output_names, 1);
+
+      float *probability_data = ort_outputs[0].GetTensorMutableData<float>();
+      std::cout << "Probability: " << probability_data[0] << " " << probability_data[1] << std::endl;
+
+      // float *probability_data = ort_outputs[1].GetTensorMutableData<float>();
+
+      // Ort::Value seq_elem = output_probability.GetValue(0, Ort::AllocatorWithDefaultOptions());
+      // Ort::Value values = seq_elem.GetValue(1, Ort::AllocatorWithDefaultOptions());
+      // float *value_data = values.GetTensorMutableData<float>();
+
+      // results.mva_score = mva_score;
+      F results.mva_score = probability_data[0];
 
       if (mva_score_best < mva_score)
       {
@@ -1451,15 +1508,16 @@ void TKinFitterDriver::Set_Jets()
   error_jet_lep_t_b.ResizeTo(1, 1);
 
   vec_jet_extra.clear();
-  vec_jet_extra.shrink_to_fit();
+  // vec_jet_extra.shrink_to_fit();
 
   vec_u_fit_jet_extra.clear();
-  vec_u_fit_jet_extra.shrink_to_fit();
+  // vec_u_fit_jet_extra.shrink_to_fit();
 
   vec_fit_jet_extra.clear();
+  // vec_fit_jet_extra.shrink_to_fit();
 
   vec_error_jet_extra.clear();
-  vec_error_jet_extra.shrink_to_fit();
+  // vec_error_jet_extra.shrink_to_fit();
 
   // assign
   vector<float> vec_jer_extra;
@@ -1683,6 +1741,12 @@ void TKinFitterDriver::Set_Variables_For_MVA(const Results &results)
   cvsb_lep_t_b = vec_jet[results.index_lep_t_b].GetTaggerResult(JetTagging::DeepJet_CvsB);
   cvsl_lep_t_b = vec_jet[results.index_lep_t_b].GetTaggerResult(JetTagging::DeepJet_CvsL);
 
+  pt_had_w = results.pt_had_w;
+  pt_had_t = results.pt_had_t;
+  pt_lep_w = results.pt_lep_w;
+  pt_lep_t = results.pt_lep_t;
+  pt_tt = results.pt_tt;
+
   theta_w_u_w_d = results.theta_w_u_w_d;
   theta_had_w_had_t_b = results.theta_had_w_had_t_b;
   theta_lep_neu = results.theta_lep_neu;
@@ -1704,6 +1768,16 @@ void TKinFitterDriver::Set_Variables_For_MVA(const Results &results)
   chi2_constraint_lep_t = results.chi2_constraint_lep_t;
   chi2_constraint_lep_w = results.chi2_constraint_lep_w;
   chi2 = results.chi2;
+
+  input_data.clear();
+  input_data = {era_index,
+                met_pt, neutrino_p,
+                pt_had_t_b, pt_w_u, pt_w_d, pt_lep_t_b,
+                bvsc_had_t_b, cvsb_had_t_b, cvsl_had_t_b,
+                bvsc_lep_t_b, cvsb_lep_t_b, cvsl_lep_t_b,
+                pt_had_w, pt_had_t, pt_lep_w, pt_lep_t, pt_tt,
+                theta_w_u_w_d, theta_had_w_had_t_b, theta_lep_neu, theta_lep_w_lep_t_b, del_phi_had_t_lep_t,
+                had_t_mass, had_w_mass, lep_t_mass, lep_t_partial_mass};
 
   return;
 } // void TKinFitterDriver::Set_Variables_For_MVA(const Result& result)

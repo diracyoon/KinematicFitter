@@ -1,6 +1,8 @@
 #ifndef Results_Container_h
 #define Results_Container_h
 
+#include <vector>
+
 #include <TObject.h>
 
 #include <Results.h>

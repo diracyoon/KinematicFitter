@@ -1,12 +1,20 @@
 #ifndef TKinFitterDriver_h
 #define TKinFitterDriver_h
 
+#include <vector>
+#include <typeinfo>
+
 #include <TObject.h>
-#include <TMVA/Reader.h>
 #include <TError.h>
 #include <TFile.h>
 #include <TH1D.h>
 #include <TString.h>
+#include <TMVA/Reader.h>
+
+#include "PhysicsTools/KinFitter/interface/TAbsFitParticle.h"
+#include "PhysicsTools/KinFitter/interface/TFitConstraintEp.h"
+#include "PhysicsTools/KinFitter/interface/TFitParticleMCCart.h"
+#include "PhysicsTools/KinFitter/interface/TFitConstraintMGaus.h"
 
 #include "Jet.h"
 #include "Lepton.h"
@@ -17,13 +25,9 @@
 #include "Event.h"
 #include "Gen.h"
 #include "LHE.h"
-#include <vector>
 
-// in /cvmfs/cms.cern.ch/$(SCRAM_ARCH)/cms/$(cmsswrel)/src/PhysicsTools/KinFitter/interface
-#include "PhysicsTools/KinFitter/interface/TAbsFitParticle.h"
-#include "PhysicsTools/KinFitter/interface/TFitConstraintEp.h"
-#include "PhysicsTools/KinFitter/interface/TFitParticleMCCart.h"
-#include "PhysicsTools/KinFitter/interface/TFitConstraintMGaus.h"
+#include "onnxruntime/core/session/onnxruntime_cxx_api.h"
+#include "onnxruntime/core/providers/cpu/cpu_provider_factory.h"
 
 // #include "PhysicsTools/KinFitter/interface/TKinFitter.h"
 #include "TKinFitter_Mod.h"
@@ -34,24 +38,30 @@
 #include "Enum_Def.h"
 #include "Results_Container.h"
 #include "Results.h"
-#include "../../../Analyzers/include/Vcb_Def.h"
+#include "Vcb_Def.h"
 
 using namespace std;
 
 class TKinFitterDriver : public TObject
 {
 public:
-  TKinFitterDriver(){};
+  TKinFitterDriver() {};
   TKinFitterDriver(const TString &_data_era, bool _run_permutatation_tree = false, bool _run_chi2 = false, bool _rm_wm_constraint = false, bool _rm_bjet_energy_reg_nn = false);
+  ~TKinFitterDriver() {};
 
-  bool Check_Status() { return results_container.status; }
+  bool Check_Status()
+  {
+    return results_container.status;
+  }
   Results_Container Get_Results() { return results_container; }
   void Scan();
-  void Set_Objects(TString& _channel, vector<Jet> &_vec_jet, vector<float> &_vec_resolution_pt, vector<bool> &_vec_btag, Lepton &_lepton, Particle &_met, bool _chk_matched = false, int *_index_matched_jet = NULL);
+  void Set_Objects(TString &_channel, vector<Jet> &_vec_jet, vector<float> &_vec_resolution_pt, vector<bool> &_vec_btag, Lepton &_lepton, Particle &_met, bool _chk_matched = false, int *_index_matched_jet = NULL);
 
 protected:
   TString data_era;
   TString channel;
+
+  float era_index;
 
   bool chk_bvsc_only = false;
   TString reco_mode;
@@ -149,6 +159,16 @@ protected:
   TMVA::Reader *reader_permutation_step_1[2]; // 0 for 4jets, 1 for 5 or greater
   TMVA::Reader *reader_prekin_cut[2];         // 0 for prekin_pre, 1 for prekin
 
+  Ort::Env *env;
+  Ort::Session *session_pre[3];
+  Ort::Session *session[3];
+  OrtMemoryInfo *memory_info;
+
+  const char *input_names[1] = {"input"};
+  const char *output_names[1] = {"probabilities"};
+
+  vector<float> input_data;
+
   float met_pt;
   float neutrino_p;
   float lepton_pt;
@@ -174,6 +194,12 @@ protected:
   float bvsc_lep_t_b;
   float cvsb_lep_t_b;
   float cvsl_lep_t_b;
+
+  float pt_had_w;
+  float pt_had_t;
+  float pt_lep_w;
+  float pt_lep_t;
+  float pt_tt;
 
   float theta_w_u_w_d;
   float theta_had_w_had_t_b;
@@ -216,7 +242,7 @@ protected:
   void Print_Permutation();
   bool Quality_Cut();
   void Rebalance_Met();
-  void Resol_Neutrino_Pz(){}; // not used currently
+  void Resol_Neutrino_Pz() {}; // not used currently
   void Save_Permutation(const bool &push = false);
   void Save_Results();
   void Set_Constraints();

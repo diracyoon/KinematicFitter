@@ -1,11 +1,15 @@
 #ifndef Results_h
 #define Results_h
 
+#include <vector>
+
 #include <TObject.h>
 
 #include <Enum_Def.h>
 
 class TKinFitterDriver;
+
+using namespace std;
 
 class Results : public TObject
 {
