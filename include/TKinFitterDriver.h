@@ -26,8 +26,10 @@
 #include "Gen.h"
 #include "LHE.h"
 
-#include "onnxruntime/core/session/onnxruntime_cxx_api.h"
-#include "onnxruntime/core/providers/cpu/cpu_provider_factory.h"
+//#include "onnxruntime/core/session/onnxruntime_cxx_api.h"
+//#include "onnxruntime/core/providers/cpu/cpu_provider_factory.h"
+#include "onnxruntime/onnxruntime_cxx_api.h"
+#include "onnxruntime/cpu_provider_factory.h"
 
 // #include "PhysicsTools/KinFitter/interface/TKinFitter.h"
 #include "TKinFitter_Mod.h"
@@ -164,10 +166,12 @@ protected:
   Ort::Session *session[3];
   OrtMemoryInfo *memory_info;
 
+  int64_t n_input_pre;
+  int64_t n_input;
+  int session_index;
+
   const char *input_names[1] = {"input"};
   const char *output_names[1] = {"probabilities"};
-
-  vector<float> input_data;
 
   float met_pt;
   float neutrino_p;
@@ -250,7 +254,7 @@ protected:
   void Set_Jets();
   void Set_Lepton();
   void Set_Neutrino(const int &index);
-  void Set_Variables_For_MVA(const Results &results);
+  void Set_Variables_For_MVA(const Results &results, vector<float>& input_data, const bool& chk_pre=true);
   void Sol_Neutrino_Pz();
   void Update_Best(const Results &results);
 

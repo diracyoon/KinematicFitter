@@ -10,8 +10,8 @@
 class Results_Container : public TObject
 {
 public:
-  Results_Container(){};
-  ~Results_Container(){};
+  Results_Container() {};
+  ~Results_Container() {};
 
   void Reset()
   {
@@ -55,6 +55,12 @@ public:
     best_pt_w_d = 99999;
     best_pt_lep_t_b = 99999;
 
+    best_pt_had_w = 99999;
+    best_pt_had_t = 99999;
+    best_pt_lep_w = 99999;
+    best_pt_lep_t = 99999;
+    best_pt_tt = 99999;
+
     best_initial_had_t_mass = 99999;
     best_initial_had_w_mass = 99999;
     best_initial_lep_t_mass = 99999;
@@ -78,12 +84,31 @@ public:
   float best_neutrino_py;
   float best_neutrino_pz;
 
+  int best_index_had_t_b;
+  int best_index_w_u;
+  int best_index_w_d;
+  int best_index_lep_t_b;
+
+  float best_pt_had_t_b;
+  float best_pt_w_u;
+  float best_pt_w_d;
+  float best_pt_lep_t_b;
+
+  float best_pt_had_w;
+  float best_pt_had_t;
+  float best_pt_lep_w;
+  float best_pt_lep_t;
+  float best_pt_tt;
+
   float best_del_phi_had_t_lep_t;
 
   float best_theta_w_u_w_d;
   float best_theta_had_w_had_t_b;
   float best_theta_lep_neu;
   float best_theta_lep_w_lep_t_b;
+
+  float best_mva_score_pre;
+  float best_mva_score;
 
   float best_chi2;
 
@@ -98,19 +123,6 @@ public:
   float best_chi2_constraint_had_w;
   float best_chi2_constraint_lep_t;
   float best_chi2_constraint_lep_w;
-
-  float best_mva_score_pre;
-  float best_mva_score;
-
-  int best_index_had_t_b;
-  int best_index_w_u;
-  int best_index_w_d;
-  int best_index_lep_t_b;
-
-  float best_pt_had_t_b;
-  float best_pt_w_u;
-  float best_pt_w_d;
-  float best_pt_lep_t_b;
 
   float best_initial_had_t_mass;
   float best_initial_had_w_mass;
